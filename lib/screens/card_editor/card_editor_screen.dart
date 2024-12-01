@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../models/business_card.dart';
+import 'dart:io';
+import 'dart:async';
 
 class CardEditorScreen extends StatefulWidget {
   final BusinessCard? card;
@@ -19,6 +22,9 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
   late TextEditingController _websiteController;
+  String? _profileImagePath;
+  String? _logoPath;
+  final _picker = ImagePicker();
 
   @override
   void initState() {
@@ -29,17 +35,134 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
     _emailController = TextEditingController(text: widget.card?.email);
     _phoneController = TextEditingController(text: widget.card?.phone);
     _websiteController = TextEditingController(text: widget.card?.website);
+    _profileImagePath = widget.card?.profileImagePath;
+    _logoPath = widget.card?.logoPath;
   }
 
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _jobTitleController.dispose();
-    _companyController.dispose();
-    _emailController.dispose();
-    _phoneController.dispose();
-    _websiteController.dispose();
-    super.dispose();
+  Future<void> _pickImage(bool isProfile) async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      
+      await showModalBottomSheet(
+        context: context,
+        builder: (BuildContext context) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Choose from Library'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  try {
+                    final XFile? image = await picker.pickImage(
+                      source: ImageSource.gallery,
+                    );
+                    _processPickedImage(image, isProfile);
+                  } catch (e) {
+                    debugPrint('Gallery pick error: $e');
+                    _showErrorMessage('Could not access photo library');
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Take a Picture'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  try {
+                    final XFile? image = await picker.pickImage(
+                      source: ImageSource.camera,
+                      preferredCameraDevice: CameraDevice.rear,
+                    );
+                    _processPickedImage(image, isProfile);
+                  } catch (e) {
+                    debugPrint('Camera pick error: $e');
+                    _showErrorMessage('Could not access camera');
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+    } catch (e) {
+      debugPrint('Modal sheet error: $e');
+      _showErrorMessage('An error occurred');
+    }
+  }
+
+  void _processPickedImage(XFile? image, bool isProfile) {
+    if (image != null && mounted) {
+      setState(() {
+        if (isProfile) {
+          _profileImagePath = image.path;
+          debugPrint('Set profile image: $_profileImagePath');
+        } else {
+          _logoPath = image.path;
+          debugPrint('Set logo image: $_logoPath');
+        }
+      });
+    }
+  }
+
+  void _showErrorMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  Widget _buildImagePicker() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        Column(
+          children: [
+            GestureDetector(
+              onTap: () => _pickImage(true),
+              child: CircleAvatar(
+                radius: 40,
+                backgroundImage: _profileImagePath != null
+                    ? FileImage(File(_profileImagePath!))
+                    : null,
+                child: _profileImagePath == null
+                    ? const Icon(Icons.person, size: 40)
+                    : null,
+              ),
+            ),
+            TextButton(
+              onPressed: () => _pickImage(true),
+              child: const Text('Add Photo'),
+            ),
+          ],
+        ),
+        Column(
+          children: [
+            GestureDetector(
+              onTap: () => _pickImage(false),
+              child: CircleAvatar(
+                radius: 40,
+                backgroundColor: Colors.grey[200],
+                backgroundImage: _logoPath != null
+                    ? FileImage(File(_logoPath!))
+                    : null,
+                child: _logoPath == null
+                    ? const Icon(Icons.business, size: 40)
+                    : null,
+              ),
+            ),
+            TextButton(
+              onPressed: () => _pickImage(false),
+              child: const Text('Add Logo'),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
   void _saveCard() {
@@ -53,20 +176,28 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
         phone: _phoneController.text.trim(),
         website: _websiteController.text.trim(),
         socialLinks: widget.card?.socialLinks ?? [],
-        profileImagePath: widget.card?.profileImagePath,
-        logoPath: widget.card?.logoPath,
+        profileImagePath: _profileImagePath,
+        logoPath: _logoPath,
         design: widget.card?.design ?? CardDesign(
           template: 'default',
-          primaryColor: Colors.blue,
+          primaryColor: Colors.black,
           secondaryColor: Colors.white,
           fontFamily: 'Roboto',
         ),
       );
-
-      debugPrint('Created card: ${card.toJson()}');
-      
       Navigator.pop(context, card);
     }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _jobTitleController.dispose();
+    _companyController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _websiteController.dispose();
+    super.dispose();
   }
 
   @override
@@ -97,42 +228,6 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildImagePicker() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        Column(
-          children: [
-            CircleAvatar(
-              radius: 40,
-              child: const Icon(Icons.person, size: 40),
-            ),
-            TextButton(
-              onPressed: () {
-                // TODO: Implement profile image picker
-              },
-              child: const Text('Add Photo'),
-            ),
-          ],
-        ),
-        Column(
-          children: [
-            CircleAvatar(
-              radius: 40,
-              child: const Icon(Icons.business, size: 40),
-            ),
-            TextButton(
-              onPressed: () {
-                // TODO: Implement logo picker
-              },
-              child: const Text('Add Logo'),
-            ),
-          ],
-        ),
-      ],
     );
   }
 

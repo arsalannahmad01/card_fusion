@@ -45,10 +45,21 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-	<key>UIKeyboardAutoHideOnTouchOutside</key>
-<true/>
-<key>UIViewControllerBasedStatusBarAppearance</key>
-<false/>
-
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.133282886935-7pgodcdhrig3dqd9ojaodpkevmehbd09</string>
+				<string>com.example.cardFusion</string>
+			</array>
+		</dict>
+	</array>
+	<key>GIDClientID</key>
+	<string>133282886935-7pgodcdhrig3dqd9ojaodpkevmehbd09.apps.googleusercontent.com</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>We need access to photo library to upload profile photos and logos</string>
+	<key>NSCameraUsageDescription</key>
+	<string>We need camera access to take profile photos and logos</string>
 </dict>
 </plist>

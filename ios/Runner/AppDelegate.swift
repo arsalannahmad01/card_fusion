@@ -1,6 +1,5 @@
 import Flutter
 import UIKit
-import FlutterPluginRegistrant
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {

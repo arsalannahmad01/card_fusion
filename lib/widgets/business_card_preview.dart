@@ -24,7 +24,7 @@ class BusinessCardPreview extends StatelessWidget {
         onTap: onFlip,
         child: Card(
           elevation: 4,
-          color: card.design.primaryColor,
+          color: Colors.black,
           child: showFront ? _buildFrontSide() : _buildBackSide(),
         ),
       ),
@@ -100,7 +100,7 @@ class BusinessCardPreview extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  // color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
@@ -111,11 +111,14 @@ class BusinessCardPreview extends StatelessWidget {
                   ],
                 ),
                 child: QrImageView(
+                  padding: const EdgeInsets.all(2),
                   data: jsonEncode(card.toShareJson()),
                   version: QrVersions.auto,
-                  size: 115,
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.black,
+                  size: 118,
+                  // eyeStyle: QrEyeStyle(
+                  //   color: Colors.white,
+                  // ),
+                  foregroundColor: Colors.white,
                 ),
               ),
             ],
