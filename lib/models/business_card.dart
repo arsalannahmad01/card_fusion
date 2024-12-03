@@ -1,5 +1,6 @@
 import 'dart:convert';
-import 'package:flutter/material.dart' show Color;
+import 'package:card_fusion/models/card_model.dart';
+import 'package:flutter/material.dart' show Color, Colors;
 
 class BusinessCard {
   final String id;
@@ -68,6 +69,28 @@ class BusinessCard {
     logoPath: json['logoPath'],
     design: CardDesign.fromJson(json['design']),
   );
+
+  factory BusinessCard.fromDigitalCard(DigitalCard card) {
+    return BusinessCard(
+      id: card.id,
+      name: card.name,
+      jobTitle: card.jobTitle ?? '',
+      company: card.companyName ?? '',
+      email: card.email,
+      phone: card.phone ?? '',
+      website: card.website ?? '',
+      socialLinks: card.socialLinks?.entries.map((e) => 
+        SocialLink(platform: e.key, url: e.value)).toList() ?? [],
+      profileImagePath: card.userImageUrl,
+      logoPath: card.logoUrl,
+      design: CardDesign(
+        template: 'default',
+        primaryColor: Colors.black,
+        secondaryColor: Colors.white,
+        fontFamily: 'Roboto',
+      ),
+    );
+  }
 }
 
 class SocialLink {

@@ -2,11 +2,48 @@ import 'package:flutter/material.dart';
 import '../../models/card_model.dart';
 import '../../models/card_template_model.dart';
 import 'template_preview_screen.dart';
+import '../../services/card_service.dart';
+import '../../services/template_service.dart';
 
-class CardTemplatesScreen extends StatelessWidget {
+class CardTemplatesScreen extends StatefulWidget {
   final DigitalCard card;
 
   const CardTemplatesScreen({super.key, required this.card});
+
+  @override
+  State<CardTemplatesScreen> createState() => _CardTemplatesScreenState();
+}
+
+class _CardTemplatesScreenState extends State<CardTemplatesScreen> {
+  final _cardService = CardService();
+  final _templateService = TemplateService();
+  late DigitalCard _selectedCard;
+  List<CardTemplate> _templates = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedCard = widget.card;
+    _loadTemplates();
+  }
+
+  Future<void> _loadTemplates() async {
+    try {
+      final templates = await _templateService.getTemplates();
+      if (mounted) {
+        setState(() {
+          _templates = templates;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading templates: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,39 +51,50 @@ class CardTemplatesScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Card Templates'),
       ),
-      body: GridView.builder(
-        padding: const EdgeInsets.all(16),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 0.75,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-        ),
-        itemCount: availableTemplates.length,
-        itemBuilder: (context, index) {
-          final template = availableTemplates[index];
-          return _buildTemplateCard(context, template);
-        },
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : GridView.builder(
+              padding: const EdgeInsets.all(16),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.75,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+              ),
+              itemCount: _templates.length,
+              itemBuilder: (context, index) {
+                final template = _templates[index];
+                return _buildTemplateCard(context, template);
+              },
+            ),
     );
   }
 
   Widget _buildTemplateCard(BuildContext context, CardTemplate template) {
-    final isSupported = template.supportsCardType(card.type);
+    final isSupported = template.supportsCardType(_selectedCard.type);
 
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: isSupported
-            ? () => Navigator.push(
+            ? () async {
+                final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (_) => TemplatePreviewScreen(
-                      card: card,
+                      card: _selectedCard,
                       template: template,
                     ),
                   ),
-                )
+                );
+                if (result == true && mounted) {
+                  await _templateService.applyTemplate(_selectedCard.id, template.id);
+                  final updatedCard = await _cardService.getCardById(_selectedCard.id);
+                  if (updatedCard != null && mounted) {
+                    Navigator.pop(context, updatedCard);
+                  }
+                }
+              }
             : null,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -55,7 +103,7 @@ class CardTemplatesScreen extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.asset(
+                  Image.network(
                     template.previewImage,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
@@ -100,44 +148,4 @@ class CardTemplatesScreen extends StatelessWidget {
       ),
     );
   }
-}
-
-// Sample templates
-final availableTemplates = [
-  CardTemplate(
-    id: 'modern_individual',
-    name: 'Modern Individual',
-    type: TemplateType.modern,
-    supportedCardTypes: [CardType.individual],
-    styles: {
-      'primaryColor': '#2196F3',
-      'fontFamily': 'Roboto',
-      'layout': 'vertical',
-    },
-    previewImage: 'assets/templates/placeholder.png',
-  ),
-  CardTemplate(
-    id: 'classic_business',
-    name: 'Classic Business',
-    type: TemplateType.classic,
-    supportedCardTypes: [CardType.business],
-    styles: {
-      'primaryColor': '#333333',
-      'fontFamily': 'Times New Roman',
-      'layout': 'horizontal',
-    },
-    previewImage: 'assets/templates/placeholder.png',
-  ),
-  CardTemplate(
-    id: 'minimal_company',
-    name: 'Minimal Company',
-    type: TemplateType.minimal,
-    supportedCardTypes: [CardType.company],
-    styles: {
-      'primaryColor': '#000000',
-      'fontFamily': 'Helvetica',
-      'layout': 'grid',
-    },
-    previewImage: 'assets/templates/placeholder.png',
-  ),
-]; 
+} 

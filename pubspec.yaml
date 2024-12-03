@@ -41,6 +41,8 @@ dependencies:
   supabase_flutter: ^1.10.25
   shared_preferences: ^2.2.2
   connectivity_plus: ^5.0.2
+  flutter_dotenv: ^5.1.0
+  font_awesome_flutter: ^10.7.0
 
 
   # The following adds the Cupertino Icons font to your application.
@@ -102,7 +104,9 @@ flutter:
   # see https://flutter.dev/to/font-from-package
 
   assets:
-    # - assets/google_logo.png
-    - assets/templates/modern_individual.png
-    - assets/templates/classic_business.png
-    - assets/templates/minimal_company.png
+    - .env
+    - lib/assets/logoCF.png
+    - lib/assets/github.png
+    # - assets/templates/modern_individual.png
+    # - assets/templates/classic_business.png
+    # - assets/templates/minimal_company.png

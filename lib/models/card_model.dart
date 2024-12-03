@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'card_template_model.dart';
 
 enum CardType { individual, business, company }
 
@@ -6,67 +7,76 @@ class DigitalCard {
   final String id;
   final String userId;
   final String name;
-  final CardType type;
-  final int? age;
   final String email;
   final String? phone;
+  final String? website;
+  final CardType type;
+  final Map<String, String>? socialLinks;
+  final CardTemplate? template;
+  final String? jobTitle;
   final String? companyName;
   final String? businessType;
-  final Map<String, String>? socialLinks;
-  final String? website;
-  final String? jobTitle;
+  final int? yearFounded;
   final String? userImageUrl;
   final String? logoUrl;
-  final int? yearFounded;
   final int? employeeCount;
   final String? headquarters;
   final String? registrationNumber;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final int? age;
 
   DigitalCard({
     required this.id,
     required this.userId,
     required this.name,
-    required this.type,
     required this.email,
-    this.age,
     this.phone,
+    this.website,
+    required this.type,
+    this.socialLinks,
+    this.template,
+    this.jobTitle,
     this.companyName,
     this.businessType,
-    this.socialLinks,
-    this.website,
-    this.jobTitle,
+    this.yearFounded,
     this.userImageUrl,
     this.logoUrl,
-    this.yearFounded,
     this.employeeCount,
     this.headquarters,
     this.registrationNumber,
-    required this.createdAt,
-    required this.updatedAt,
-  });
+    this.age,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) : this.createdAt = createdAt ?? DateTime.now(),
+       this.updatedAt = updatedAt ?? DateTime.now();
 
   factory DigitalCard.fromJson(Map<String, dynamic> json) {
+    CardTemplate? template;
+    if (json['template'] != null) {
+      template = CardTemplate.fromJson(json['template']);
+    }
+
     return DigitalCard(
       id: json['id'],
       userId: json['user_id'],
       name: json['name'],
-      type: CardType.values.byName(json['type']),
       email: json['email'],
-      age: json['age'],
       phone: json['phone'],
+      website: json['website'],
+      type: CardType.values.byName(json['type']),
+      socialLinks: Map<String, String>.from(json['social_links'] ?? {}),
+      template: template,
+      jobTitle: json['job_title'],
       companyName: json['company_name'],
       businessType: json['business_type'],
-      socialLinks: Map<String, String>.from(json['social_links'] ?? {}),
-      website: json['website'],
-      jobTitle: json['job_title'],
+      yearFounded: json['year_founded'],
       userImageUrl: json['user_image_url'],
       logoUrl: json['logo_url'],
-      yearFounded: json['year_founded'],
       employeeCount: json['employee_count'],
       headquarters: json['headquarters'],
       registrationNumber: json['registration_number'],
+      age: json['age'],
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
     );
@@ -74,24 +84,25 @@ class DigitalCard {
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      if (id.isNotEmpty) 'id': id,
       'user_id': userId,
       'name': name,
-      'type': type.name,
       'email': email,
-      'age': age,
       'phone': phone,
+      'website': website,
+      'type': type.name,
+      'social_links': socialLinks,
+      'template_id': template?.id,
+      'job_title': jobTitle,
       'company_name': companyName,
       'business_type': businessType,
-      'social_links': socialLinks,
-      'website': website,
-      'job_title': jobTitle,
+      'year_founded': yearFounded,
       'user_image_url': userImageUrl,
       'logo_url': logoUrl,
-      'year_founded': yearFounded,
       'employee_count': employeeCount,
       'headquarters': headquarters,
       'registration_number': registrationNumber,
+      'age': age,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -99,43 +110,47 @@ class DigitalCard {
 
   DigitalCard copyWith({
     String? name,
-    CardType? type,
     String? email,
-    int? age,
     String? phone,
+    String? website,
+    CardType? type,
+    Map<String, String>? socialLinks,
+    CardTemplate? template,
+    String? jobTitle,
     String? companyName,
     String? businessType,
-    Map<String, String>? socialLinks,
-    String? website,
-    String? jobTitle,
+    int? yearFounded,
     String? userImageUrl,
     String? logoUrl,
-    int? yearFounded,
     int? employeeCount,
     String? headquarters,
     String? registrationNumber,
+    int? age,
+    DateTime? createdAt,
+    DateTime? updatedAt,
   }) {
     return DigitalCard(
       id: id,
       userId: userId,
       name: name ?? this.name,
-      type: type ?? this.type,
       email: email ?? this.email,
-      age: age ?? this.age,
       phone: phone ?? this.phone,
+      website: website ?? this.website,
+      type: type ?? this.type,
+      socialLinks: socialLinks ?? this.socialLinks,
+      template: template ?? this.template,
+      jobTitle: jobTitle ?? this.jobTitle,
       companyName: companyName ?? this.companyName,
       businessType: businessType ?? this.businessType,
-      socialLinks: socialLinks ?? this.socialLinks,
-      website: website ?? this.website,
-      jobTitle: jobTitle ?? this.jobTitle,
+      yearFounded: yearFounded ?? this.yearFounded,
       userImageUrl: userImageUrl ?? this.userImageUrl,
       logoUrl: logoUrl ?? this.logoUrl,
-      yearFounded: yearFounded ?? this.yearFounded,
       employeeCount: employeeCount ?? this.employeeCount,
       headquarters: headquarters ?? this.headquarters,
       registrationNumber: registrationNumber ?? this.registrationNumber,
-      createdAt: createdAt,
-      updatedAt: DateTime.now(),
+      age: age ?? this.age,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
-} 
+}
