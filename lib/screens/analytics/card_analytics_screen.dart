@@ -24,9 +24,7 @@ class _CardAnalyticsScreenState extends State<CardAnalyticsScreen> {
 
   Future<void> _loadAnalytics() async {
     try {
-      debugPrint('Loading analytics for card: ${widget.card.id}');
       final analytics = await _analyticsService.getCardAnalytics(widget.card.id);
-      debugPrint('Loaded analytics: $analytics');
       if (mounted) {
         setState(() {
           _analytics = analytics;

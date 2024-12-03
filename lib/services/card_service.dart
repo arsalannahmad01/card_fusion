@@ -9,37 +9,132 @@ class CardService {
 
   Future<List<DigitalCard>> getCards() async {
     try {
+      final user = _supabase.auth.currentUser;
+      if (user == null) {
+        debugPrint('No authenticated user found');
+        return [];
+      }
+
+      debugPrint('Fetching cards for user: ${user.id}');
       final response = await _supabase
           .from('digital_cards')
-          .select()
-          .eq('user_id', _supabase.auth.currentUser!.id)
-          .order('created_at');
+          .select('''
+            *,
+            template:templates(
+              id,
+              name,
+              type,
+              supported_card_types,
+              styles,
+              preview_image
+            )
+          ''')
+          .eq('user_id', user.id)
+          .order('created_at', ascending: false);
 
-      return (response as List)
-          .map((json) => DigitalCard.fromJson(json))
-          .toList();
-    } catch (e) {
+      debugPrint('Raw response: $response');
+      
+      if (response == null || response is! List) {
+        debugPrint('Invalid response format: ${response.runtimeType}');
+        return [];
+      }
+
+      final cards = <DigitalCard>[];
+      for (final json in response) {
+        try {
+          debugPrint('Processing card: ${json['id']}');
+          if (json['template'] != null) {
+            debugPrint('Template data: ${json['template']}');
+          }
+          final card = DigitalCard.fromJson(json);
+          cards.add(card);
+        } catch (e, stackTrace) {
+          debugPrint('Error parsing card ${json['id']}: $e');
+          debugPrint('Card data: $json');
+          debugPrint('Stack trace: $stackTrace');
+        }
+      }
+          
+      debugPrint('Successfully parsed ${cards.length} cards');
+      return cards;
+    } catch (e, stackTrace) {
       debugPrint('Error fetching cards: $e');
+      debugPrint('Stack trace: $stackTrace');
       return [];
     }
   }
 
+  Future<DigitalCard?> getCardById(String cardId) async {
+    try {
+      final response = await _supabase
+          .from('digital_cards')
+          .select('''
+            *,
+            template:templates(
+              id,
+              name,
+              type,
+              supported_card_types,
+              styles,
+              preview_image
+            )
+          ''')
+          .eq('id', cardId)
+          .single();
+
+      return DigitalCard.fromJson(response);
+    } catch (e) {
+      debugPrint('Error fetching card: $e');
+      return null;
+    }
+  }
+
   Future<DigitalCard> createCard(DigitalCard card) async {
+    final cardData = card.toJson();
+    // Remove any fields that might not exist in the database
+    cardData.remove('shares');
+    cardData.remove('views');
+    
     final response = await _supabase
         .from('digital_cards')
-        .insert(card.toJson())
-        .select()
+        .insert(cardData)
+        .select('''
+          *,
+          template:templates(
+            id,
+            name,
+            type,
+            supported_card_types,
+            styles,
+            preview_image
+          )
+        ''')
         .single();
 
     return DigitalCard.fromJson(response);
   }
 
   Future<DigitalCard> updateCard(DigitalCard card) async {
+    final cardData = card.toJson();
+    // Remove any fields that might not exist in the database
+    cardData.remove('shares');
+    cardData.remove('views');
+    
     final response = await _supabase
         .from('digital_cards')
-        .update(card.toJson())
+        .update(cardData)
         .eq('id', card.id)
-        .select()
+        .select('''
+          *,
+          template:templates(
+            id,
+            name,
+            type,
+            supported_card_types,
+            styles,
+            preview_image
+          )
+        ''')
         .single();
 
     return DigitalCard.fromJson(response);
@@ -101,7 +196,6 @@ class CardService {
 
       final imageUrl = _supabase.storage.from('card_images').getPublicUrl(path);
 
-      debugPrint('Image uploaded successfully: $imageUrl');
       return imageUrl;
     } catch (e) {
       debugPrint('Error in uploadImage: $e');
@@ -143,6 +237,7 @@ class CardService {
           .select('card_id')
           .eq('user_id', _supabase.auth.currentUser!.id);
 
+
       final cardIds =
           (response as List).map((r) => r['card_id'] as String).toList();
 
@@ -176,7 +271,6 @@ class CardService {
   Future<String?> getRandomCardForTesting() async {
     try {
       final currentUserId = _supabase.auth.currentUser!.id;
-      debugPrint('Current user ID: $currentUserId');
 
       // First get all cards to debug
       var card = await _supabase
@@ -185,10 +279,6 @@ class CardService {
           .neq('user_id', currentUserId)
           .order('created_at', ascending: false)
           .limit(1);
-
-      print('Card: $card');
-
-    
 
       final cardId = card[0]['id'] as String;
       return cardId;

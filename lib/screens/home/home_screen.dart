@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
-import '../../models/card_model.dart';
 import '../../services/card_service.dart';
+import '../../models/card_model.dart';
 import '../../services/supabase_service.dart';
 import '../card_editor/create_card_screen.dart';
-import '../qr_scanner/qr_scanner_screen.dart';
 import '../card_viewer/card_viewer_screen.dart';
+import '../qr_scanner/qr_scanner_screen.dart';
 import '../analytics/analytics_screen.dart';
+import '../templates/card_templates_screen.dart';
+import '../../config/theme.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,27 +17,43 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   final _cardService = CardService();
-  List<DigitalCard> _myCards = [];
+  final _authService = SupabaseService();
+  List<DigitalCard> _cards = [];
   List<DigitalCard> _savedCards = [];
-  bool _isLoading = true;
-  CardType? _selectedType;
+  bool _isLoading = false;
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
-    _loadCards();
+    _tabController = TabController(length: 2, vsync: this);
+    _loadAllCards();
   }
 
-  Future<void> _loadCards() async {
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadAllCards() async {
     setState(() => _isLoading = true);
     try {
-      final myCards = await _cardService.getCards();
-      final savedCards = await _cardService.getSavedCards();
+      final user = _authService.currentUser;
+      if (user == null) {
+        throw 'User not authenticated';
+      }
+
+      final [cards, savedCards] = await Future.wait([
+        _cardService.getCards(),
+        _cardService.getSavedCards(),
+      ]);
+
       if (mounted) {
         setState(() {
-          _myCards = myCards;
+          _cards = cards;
           _savedCards = savedCards;
           _isLoading = false;
         });
@@ -50,336 +69,763 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  List<DigitalCard> _getFilteredCards(List<DigitalCard> cards) {
-    if (_selectedType == null) return cards;
-    return cards.where((card) => card.type == _selectedType).toList();
+  Future<void> _refreshCards() async {
+    await _loadAllCards();
   }
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        drawer: _buildDrawer(context),
-        appBar: AppBar(
-          title: const Text('Card Fusion'),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.qr_code_scanner),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const QRScannerScreen()),
-              ),
-            ),
-          ],
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'MY CARDS'),
-              Tab(text: 'SAVED CARDS'),
-            ],
-          ),
-        ),
-        body: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : Column(
+    final currentUser = _authService.currentUser;
+    final size = MediaQuery.of(context).size;
+    
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) => [
+          SliverAppBar(
+            expandedHeight: size.height * 0.25,
+            floating: false,
+            pinned: true,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            shadowColor: Colors.transparent,
+            forceElevated: false,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Stack(
                 children: [
-                  _buildFilterChips(),
-                  Expanded(
-                    child: TabBarView(
+                  // Gradient background with pattern
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          AppColors.primary,
+                          AppColors.secondary.withOpacity(0.8),
+                        ],
+                      ),
+                    ),
+                    child: Stack(
                       children: [
-                        _buildCardsList(_getFilteredCards(_myCards), isMyCards: true),
-                        _buildCardsList(_getFilteredCards(_savedCards), isMyCards: false),
+                        // Decorative patterns
+                        Positioned(
+                          right: -30,
+                          top: -30,
+                          child: Container(
+                            width: 160,
+                            height: 160,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          left: -20,
+                          bottom: -20,
+                          child: Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
+                  // Content
+                  SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Top row with profile and actions
+                          Row(
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.white.withOpacity(0.3),
+                                    width: 2,
+                                  ),
+                                ),
+                                child: CircleAvatar(
+                                  radius: 30,
+                                  backgroundColor: Colors.white,
+                                  child: Text(
+                                    currentUser?.userMetadata?['name']?[0].toUpperCase() ?? 'U',
+                                    style: TextStyle(
+                                      color: AppColors.primary,
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      currentUser?.userMetadata?['name'] ?? 'User',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    Text(
+                                      currentUser?.email ?? '',
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.9),
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: () => _authService.signOut(),
+                                icon: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.1),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.2),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: const Icon(Icons.logout, color: Colors.white, size: 20),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Spacer(),
+                          // Stats row
+                          Row(
+                            children: [
+                              _buildHeaderStat(
+                                'My Cards',
+                                _cards.length.toString(),
+                                Icons.credit_card_outlined,
+                              ),
+                              const SizedBox(width: 16),
+                              _buildHeaderStat(
+                                'Saved',
+                                _savedCards.length.toString(),
+                                Icons.bookmark_outline,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: _createCard,
-          child: const Icon(Icons.add),
+            ),
+          ),
+        ],
+        body: ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+            ),
+            child: Column(
+              children: [
+                _buildQuickActions(),
+                TabBar(
+                  controller: _tabController,
+                  labelColor: AppColors.primary,
+                  unselectedLabelColor: AppColors.textSecondary,
+                  indicatorColor: AppColors.primary,
+                  indicatorWeight: 3,
+                  tabs: [
+                    Tab(
+                      icon: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.credit_card),
+                          const SizedBox(width: 8),
+                          Text('My Cards (${_cards.length})'),
+                        ],
+                      ),
+                    ),
+                    Tab(
+                      icon: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.bookmark),
+                          const SizedBox(width: 8),
+                          Text('Saved (${_savedCards.length})'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      // My Cards Tab
+                      RefreshIndicator(
+                        onRefresh: _refreshCards,
+                        child: _isLoading
+                            ? const Center(child: CircularProgressIndicator())
+                            : _cards.isEmpty
+                                ? _buildEmptyState()
+                                : ListView.builder(
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    itemCount: _cards.length,
+                                    itemBuilder: (context, index) => _buildCardItem(_cards[index], isOwned: true),
+                                  ),
+                      ),
+                      // Saved Cards Tab
+                      RefreshIndicator(
+                        onRefresh: _refreshCards,
+                        child: _isLoading
+                            ? const Center(child: CircularProgressIndicator())
+                            : _savedCards.isEmpty
+                                ? Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(20),
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.bookmark_outline,
+                                            size: 64,
+                                            color: AppColors.textSecondary.withOpacity(0.5),
+                                          ),
+                                          const SizedBox(height: 16),
+                                          Text(
+                                            'No saved cards yet',
+                                            style: TextStyle(
+                                              color: AppColors.textSecondary,
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  )
+                                : ListView.builder(
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    itemCount: _savedCards.length,
+                                    itemBuilder: (context, index) => _buildCardItem(_savedCards[index], isOwned: false),
+                                  ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
-    );
-  }
-
-  Widget _buildFilterChips() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: [
-          FilterChip(
-            label: const Text('All'),
-            selected: _selectedType == null,
-            onSelected: (selected) {
-              setState(() => _selectedType = null);
-            },
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.primary,
+              AppColors.secondary,
+            ],
           ),
-          const SizedBox(width: 8),
-          ...CardType.values.map((type) => Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: FilterChip(
-                  label: Text(type.name.toUpperCase()),
-                  selected: _selectedType == type,
-                  onSelected: (selected) {
-                    setState(() => _selectedType = selected ? type : null);
-                  },
-                ),
-              )),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCardsList(List<DigitalCard> cards, {required bool isMyCards}) {
-    if (cards.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              isMyCards ? Icons.credit_card : Icons.bookmark,
-              size: 64,
-              color: Colors.grey,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              isMyCards
-                  ? 'Create your first card'
-                  : 'No saved cards yet\nScan QR codes to save cards',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleMedium,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withOpacity(0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: _loadCards,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(8),
-        itemCount: cards.length,
-        itemBuilder: (context, index) {
-          final card = cards[index];
-          return Card(
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: Theme.of(context).primaryColor,
-                child: Text(
-                  card.name[0].toUpperCase(),
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ),
-              title: Text(card.name),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CreateCardScreen()),
+            ).then((_) => _loadAllCards()),
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(card.type.name.toUpperCase()),
-                  if (card.jobTitle != null) Text(card.jobTitle!),
-                  if (card.companyName != null) Text(card.companyName!),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.add,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Create Card',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ],
               ),
-              isThreeLine: true,
-              trailing: PopupMenuButton(
-                itemBuilder: (context) => [
-                  if (isMyCards) ...[
-                    PopupMenuItem(
-                      child: const Text('Share'),
-                      onTap: () => _shareCard(card),
-                    ),
-                    PopupMenuItem(
-                      child: const Text('Edit'),
-                      onTap: () => _editCard(card),
-                    ),
-                    PopupMenuItem(
-                      child: const Text('Delete'),
-                      onTap: () => _deleteCard(card),
-                    ),
-                  ] else
-                    PopupMenuItem(
-                      child: const Text('Remove'),
-                      onTap: () => _removeSavedCard(card),
-                    ),
-                ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeaderStat(String label, String value, IconData icon) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.2),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
               ),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => CardViewerScreen(
-                    card: card,
-                    isSavedCard: !isMyCards,
+              child: Icon(
+                icon,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  value,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
             ),
-          );
-        },
+          ],
+        ),
       ),
     );
   }
 
-  Future<void> _createCard() async {
-    final result = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(builder: (_) => const CreateCardScreen()),
-    );
-
-    if (result == true) {
-      await _loadCards();
-    }
-  }
-
-  Future<void> _editCard(DigitalCard card) async {
-    // TODO: Implement edit functionality
-  }
-
-  Future<void> _deleteCard(DigitalCard card) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Card'),
-        content: const Text('Are you sure you want to delete this card?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      try {
-        await _cardService.deleteCard(card.id);
-        await _loadCards();
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error deleting card: $e')),
-          );
-        }
-      }
-    }
-  }
-
-  Future<void> _shareCard(DigitalCard card) async {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => CardViewerScreen(card: card),
-      ),
-    );
-  }
-
-  Future<void> _removeSavedCard(DigitalCard card) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Remove Saved Card'),
-        content: const Text('Are you sure you want to remove this saved card?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Remove'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      try {
-        await _cardService.removeSavedCard(card.id);
-        await _loadCards();
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error removing card: $e')),
-          );
-        }
-      }
-    }
-  }
-
-  Widget _buildDrawer(BuildContext context) {
-    final currentUser = SupabaseService().currentUser;
-    
-    return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
+  Widget _buildQuickActions() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 30, 20, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          UserAccountsDrawerHeader(
-            accountName: Text(currentUser?.email ?? ''),
-            accountEmail: null,
-            currentAccountPicture: CircleAvatar(
-              backgroundColor: Colors.white,
-              child: Text(
-                (currentUser?.email?[0] ?? '?').toUpperCase(),
-                style: const TextStyle(fontSize: 24),
+          const Text(
+            'Quick Actions',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildActionButton(
+                'Scan QR',
+                Icons.qr_code_scanner,
+                const Color(0xFF6C63FF),
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const QRScannerScreen()),
+                ),
               ),
-            ),
-            decoration: BoxDecoration(
-              color: Theme.of(context).primaryColor,
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.qr_code_scanner),
-            title: const Text('Scan QR Code'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const QRScannerScreen()),
-              );
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.add_card),
-            title: const Text('Create New Card'),
-            onTap: () {
-              Navigator.pop(context);
-              _createCard();
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.analytics),
-            title: const Text('Analytics'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AnalyticsScreen()),
-              );
-            },
-          ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.logout),
-            title: const Text('Logout'),
-            onTap: _logout,
+              _buildActionButton(
+                'Analytics',
+                Icons.analytics,
+                const Color(0xFF4CAF50),
+                () {
+                  if (_cards.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Create a card first to view analytics')),
+                    );
+                    return;
+                  }
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => AnalyticsScreen(initialCard: _cards.first)),
+                  );
+                },
+              ),
+              _buildActionButton(
+                'Templates',
+                Icons.style,
+                const Color(0xFFFFA726),
+                () {
+                  if (_cards.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Create a card first to access templates')),
+                    );
+                    return;
+                  }
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => CardTemplatesScreen(card: _cards.first)),
+                  );
+                },
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Future<void> _logout() async {
-    try {
-      await SupabaseService().signOut();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error signing out: $e')),
-        );
-      }
-    }
+  Widget _buildActionButton(String label, IconData icon, Color color, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        width: 100,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 32),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCardSections() {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_cards.isNotEmpty) ...[
+            _buildSectionHeader('Your Cards', Icons.credit_card),
+            const SizedBox(height: 16),
+            _buildCardList(_cards, isOwned: true),
+            const SizedBox(height: 32),
+          ],
+          if (_savedCards.isNotEmpty) ...[
+            _buildSectionHeader('Saved Cards', Icons.bookmark),
+            const SizedBox(height: 16),
+            _buildCardList(_savedCards, isOwned: false),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, color: AppColors.primary),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCardList(List<DigitalCard> cards, {required bool isOwned}) {
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: cards.length,
+      itemBuilder: (context, index) => Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: _buildCardItem(cards[index], isOwned: isOwned),
+      ),
+    );
+  }
+
+  Widget _buildCardItem(DigitalCard card, {required bool isOwned}) {
+    final color = isOwned ? AppColors.primary : AppColors.secondary;
+    
+    return InkWell(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => CardViewerScreen(card: card),
+        ),
+      ).then((_) => _loadAllCards()),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        card.type == CardType.individual
+                            ? Icons.person
+                            : Icons.business,
+                        color: color,
+                        size: 30,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          card.name,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        if (card.jobTitle != null) ...[
+                          Text(
+                            card.jobTitle!,
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  if (isOwned) ...[
+                    PopupMenuButton<String>(
+                      icon: Icon(Icons.more_vert, color: color),
+                      onSelected: (value) async {
+                        if (value == 'edit') {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => CreateCardScreen(card: card),
+                            ),
+                          );
+                          if (result == true) {
+                            _loadAllCards();
+                          }
+                        } else if (value == 'delete') {
+                          // Show confirmation dialog
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Delete Card'),
+                              content: const Text('Are you sure you want to delete this card?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, false),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: Colors.red,
+                                  ),
+                                  child: const Text('Delete'),
+                                ),
+                              ],
+                            ),
+                          );
+                          
+                          if (confirm == true) {
+                            try {
+                              await _cardService.deleteCard(card.id);
+                              _loadAllCards();
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Card deleted successfully')),
+                                );
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Error deleting card: $e')),
+                                );
+                              }
+                            }
+                          }
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit, size: 20),
+                              SizedBox(width: 8),
+                              Text('Edit'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete, size: 20, color: Colors.red),
+                              SizedBox(width: 8),
+                              Text('Delete', style: TextStyle(color: Colors.red)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContactChip(IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Icon(
+        icon,
+        size: 16,
+        color: color,
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Padding(
+      padding: const EdgeInsets.all(40),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.credit_card,
+            size: 80,
+            color: AppColors.primary.withOpacity(0.5),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'No Cards Yet',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Create your first digital card',
+            style: TextStyle(
+              fontSize: 16,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 32),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CreateCardScreen()),
+            ).then((_) => _loadAllCards()),
+            icon: const Icon(Icons.add),
+            label: const Text('Create Card'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 32,
+                vertical: 16,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+extension StringUtils on String {
+  T let<T>(T Function(String) block) => block(this);
+}
+
+extension CardStringExtension on String {
+  String capitalize() {
+    return "${this[0].toUpperCase()}${substring(1).toLowerCase()}";
   }
 }
