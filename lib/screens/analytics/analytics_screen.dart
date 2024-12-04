@@ -3,6 +3,7 @@ import '../../models/card_model.dart';
 import '../../services/card_service.dart';
 import '../../services/analytics_service.dart';
 import 'card_analytics_screen.dart';
+import '../../config/theme.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   final DigitalCard? initialCard;
@@ -118,19 +119,61 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Analytics'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          'Analytics',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _myCards.isEmpty
-              ? const Center(child: Text('No cards available'))
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.analytics_outlined,
+                        size: 64,
+                        color: AppColors.secondary.withOpacity(0.5),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No cards available',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
               : Column(
                   children: [
                     _buildCardSelector(),
                     Expanded(
                       child: _selectedCard == null
-                          ? const Center(child: Text('Select a card'))
+                          ? Center(
+                              child: Text(
+                                'Select a card to view analytics',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            )
                           : CardAnalyticsScreen(card: _selectedCard!),
                     ),
                   ],
@@ -139,21 +182,53 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   Widget _buildCardSelector() {
-    return Card(
+    return Container(
       margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.primary,
+            AppColors.secondary,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
         child: DropdownButtonHideUnderline(
           child: DropdownButton<String>(
             isExpanded: true,
             value: _selectedCard?.id,
-            hint: const Text('Select a card'),
+            hint: const Text(
+              'Select a card',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+              ),
+            ),
+            icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+            dropdownColor: AppColors.primary,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
             items: _myCards.map((card) {
               return DropdownMenuItem(
                 value: card.id,
                 child: Text(
                   '${card.name} (${card.type.name})',
                   overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white),
                 ),
               );
             }).toList(),

@@ -7,6 +7,7 @@ import '../card_viewer/card_viewer_screen.dart';
 import 'dart:io';
 import '../qr_scanner/scanned_card_preview_screen.dart';
 import '../../services/analytics_service.dart';
+import '../../config/theme.dart';
 
 class QRScannerScreen extends StatefulWidget {
   const QRScannerScreen({super.key});
@@ -33,20 +34,37 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('Scan QR Code'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          'Scan QR Code',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
         actions: [
           if (Platform.isIOS)
             IconButton(
-              icon: const Icon(Icons.bug_report),
+              icon: const Icon(Icons.bug_report, color: Colors.white),
               onPressed: _simulateScan,
             ),
           IconButton(
-            icon: Icon(_flashOn ? Icons.flash_on : Icons.flash_off),
+            icon: Icon(
+              _flashOn ? Icons.flash_on : Icons.flash_off,
+              color: Colors.white,
+            ),
             onPressed: _toggleFlash,
           ),
           IconButton(
-            icon: const Icon(Icons.flip_camera_android),
+            icon: const Icon(Icons.flip_camera_android, color: Colors.white),
             onPressed: _flipCamera,
           ),
         ],
@@ -57,30 +75,91 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
             key: qrKey,
             onQRViewCreated: _onQRViewCreated,
             overlay: QrScannerOverlayShape(
-              borderColor: Theme.of(context).primaryColor,
-              borderRadius: 10,
-              borderLength: 30,
-              borderWidth: 10,
-              cutOutSize: MediaQuery.of(context).size.width * 0.8,
+              borderColor: AppColors.secondary,
+              borderRadius: 12,
+              borderLength: 32,
+              borderWidth: 12,
+              cutOutSize: MediaQuery.of(context).size.width * 0.7,
+              overlayColor: Colors.black87,
             ),
           ),
           if (_isProcessing)
             Container(
-              color: Colors.black54,
-              child: const Center(
-                child: CircularProgressIndicator(),
+              color: Colors.black87,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const CircularProgressIndicator(),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Processing QR Code...',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           Positioned(
-            bottom: 16,
             left: 0,
             right: 0,
-            child: Text(
-              'Align QR code within the frame',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.white,
+            bottom: 40,
+            child: Column(
+              children: [
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 40),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
                   ),
-              textAlign: TextAlign.center,
+                  decoration: BoxDecoration(
+                    color: Colors.black87,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppColors.secondary.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.qr_code_scanner,
+                        color: AppColors.secondary,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Align QR code within frame',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Scanning will start automatically',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.7),
+                    fontSize: 14,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

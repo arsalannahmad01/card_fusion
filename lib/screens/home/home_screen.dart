@@ -9,6 +9,7 @@ import '../analytics/analytics_screen.dart';
 import '../templates/card_templates_screen.dart';
 import '../../config/theme.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../auth/login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,7 +18,8 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
   final _cardService = CardService();
   final _authService = SupabaseService();
   List<DigitalCard> _cards = [];
@@ -77,7 +79,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   Widget build(BuildContext context) {
     final currentUser = _authService.currentUser;
     final size = MediaQuery.of(context).size;
-    
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: NestedScrollView(
@@ -157,7 +159,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                   radius: 30,
                                   backgroundColor: Colors.white,
                                   child: Text(
-                                    currentUser?.userMetadata?['name']?[0].toUpperCase() ?? 'U',
+                                    currentUser?.userMetadata?['name']?[0]
+                                            .toUpperCase() ??
+                                        'U',
                                     style: TextStyle(
                                       color: AppColors.primary,
                                       fontSize: 24,
@@ -172,7 +176,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      currentUser?.userMetadata?['name'] ?? 'User',
+                                      currentUser?.userMetadata?['name'] ??
+                                          'User',
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 24,
@@ -192,7 +197,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                 ),
                               ),
                               IconButton(
-                                onPressed: () => _authService.signOut(),
+                                onPressed: () async {
+                                  await _authService.signOut();
+                                  if (mounted) {
+                                    Navigator.of(context).pushAndRemoveUntil(
+                                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                                      (route) => false,
+                                    );
+                                  }
+                                },
                                 icon: Container(
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
@@ -203,7 +216,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                       width: 1,
                                     ),
                                   ),
-                                  child: const Icon(Icons.logout, color: Colors.white, size: 20),
+                                  child: const Icon(Icons.logout,
+                                      color: Colors.white, size: 20),
                                 ),
                               ),
                             ],
@@ -280,31 +294,66 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       RefreshIndicator(
                         onRefresh: _refreshCards,
                         child: _isLoading
-                            ? const Center(child: CircularProgressIndicator())
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const CircularProgressIndicator(),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'Loading your cards...',
+                                      style: TextStyle(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
                             : _cards.isEmpty
                                 ? _buildEmptyState()
                                 : ListView.builder(
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 16),
                                     itemCount: _cards.length,
-                                    itemBuilder: (context, index) => _buildCardItem(_cards[index], isOwned: true),
+                                    itemBuilder: (context, index) =>
+                                        _buildCardItem(_cards[index],
+                                            isOwned: true),
                                   ),
                       ),
                       // Saved Cards Tab
                       RefreshIndicator(
                         onRefresh: _refreshCards,
                         child: _isLoading
-                            ? const Center(child: CircularProgressIndicator())
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const CircularProgressIndicator(),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'Loading saved cards...',
+                                      style: TextStyle(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
                             : _savedCards.isEmpty
                                 ? Center(
                                     child: Padding(
                                       padding: const EdgeInsets.all(20),
                                       child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: [
                                           Icon(
                                             Icons.bookmark_outline,
                                             size: 64,
-                                            color: AppColors.textSecondary.withOpacity(0.5),
+                                            color: AppColors.textSecondary
+                                                .withOpacity(0.5),
                                           ),
                                           const SizedBox(height: 16),
                                           Text(
@@ -320,9 +369,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                     ),
                                   )
                                 : ListView.builder(
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 16),
                                     itemCount: _savedCards.length,
-                                    itemBuilder: (context, index) => _buildCardItem(_savedCards[index], isOwned: false),
+                                    itemBuilder: (context, index) =>
+                                        _buildCardItem(_savedCards[index],
+                                            isOwned: false),
                                   ),
                       ),
                     ],
@@ -482,13 +534,17 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 () {
                   if (_cards.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Create a card first to view analytics')),
+                      const SnackBar(
+                          content:
+                              Text('Create a card first to view analytics')),
                     );
                     return;
                   }
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => AnalyticsScreen(initialCard: _cards.first)),
+                    MaterialPageRoute(
+                        builder: (_) =>
+                            AnalyticsScreen(initialCard: _cards.first)),
                   );
                 },
               ),
@@ -499,13 +555,17 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 () {
                   if (_cards.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Create a card first to access templates')),
+                      const SnackBar(
+                          content:
+                              Text('Create a card first to access templates')),
                     );
                     return;
                   }
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => CardTemplatesScreen(card: _cards.first)),
+                    MaterialPageRoute(
+                        builder: (_) =>
+                            CardTemplatesScreen(card: _cards.first)),
                   );
                 },
               ),
@@ -516,7 +576,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildActionButton(String label, IconData icon, Color color, VoidCallback onTap) {
+  Widget _buildActionButton(
+      String label, IconData icon, Color color, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
@@ -596,7 +657,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   Widget _buildCardItem(DigitalCard card, {required bool isOwned}) {
     final color = isOwned ? AppColors.primary : AppColors.secondary;
-    
+
     return InkWell(
       onTap: () => Navigator.push(
         context,
@@ -687,10 +748,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                             context: context,
                             builder: (context) => AlertDialog(
                               title: const Text('Delete Card'),
-                              content: const Text('Are you sure you want to delete this card?'),
+                              content: const Text(
+                                  'Are you sure you want to delete this card?'),
                               actions: [
                                 TextButton(
-                                  onPressed: () => Navigator.pop(context, false),
+                                  onPressed: () =>
+                                      Navigator.pop(context, false),
                                   child: const Text('Cancel'),
                                 ),
                                 TextButton(
@@ -703,20 +766,23 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                               ],
                             ),
                           );
-                          
+
                           if (confirm == true) {
                             try {
                               await _cardService.deleteCard(card.id);
                               _loadAllCards();
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Card deleted successfully')),
+                                  const SnackBar(
+                                      content:
+                                          Text('Card deleted successfully')),
                                 );
                               }
                             } catch (e) {
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Error deleting card: $e')),
+                                  SnackBar(
+                                      content: Text('Error deleting card: $e')),
                                 );
                               }
                             }
@@ -740,7 +806,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                             children: [
                               Icon(Icons.delete, size: 20, color: Colors.red),
                               SizedBox(width: 8),
-                              Text('Delete', style: TextStyle(color: Colors.red)),
+                              Text('Delete',
+                                  style: TextStyle(color: Colors.red)),
                             ],
                           ),
                         ),
@@ -789,30 +856,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
-            'Create your first digital card',
+            'Create your first digital card using the button below',
             style: TextStyle(
               fontSize: 16,
               color: AppColors.textSecondary,
             ),
-          ),
-          const SizedBox(height: 32),
-          ElevatedButton.icon(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const CreateCardScreen()),
-            ).then((_) => _loadAllCards()),
-            icon: const Icon(Icons.add),
-            label: const Text('Create Card'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 32,
-                vertical: 16,
-              ),
-            ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),

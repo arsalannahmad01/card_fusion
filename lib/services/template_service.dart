@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/card_template_model.dart';
+import '../models/template_element_model.dart';
 import '../models/card_model.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 
@@ -13,18 +14,7 @@ class TemplateService {
           .select()
           .order('name');
 
-      return (response as List).map((json) {
-        return CardTemplate(
-          id: json['id'],
-          name: json['name'],
-          type: TemplateType.values.byName(json['type']),
-          supportedCardTypes: (json['supported_card_types'] as List)
-              .map((t) => CardType.values.byName(t.toString()))
-              .toList(),
-          styles: Map<String, dynamic>.from(json['styles']),
-          previewImage: json['preview_image'],
-        );
-      }).toList();
+      return (response as List).map((json) => CardTemplate.fromJson(json)).toList();
     } catch (e) {
       debugPrint('Error fetching templates: $e');
       return [];
@@ -39,19 +29,52 @@ class TemplateService {
           .eq('id', templateId)
           .single();
 
-      return CardTemplate(
-        id: response['id'],
-        name: response['name'],
-        type: TemplateType.values.byName(response['type']),
-        supportedCardTypes: (response['supported_card_types'] as List)
-            .map((t) => CardType.values.byName(t.toString()))
-            .toList(),
-        styles: Map<String, dynamic>.from(response['styles']),
-        previewImage: response['preview_image'],
-      );
+      return CardTemplate.fromJson(response);
     } catch (e) {
       debugPrint('Error fetching template: $e');
       return null;
+    }
+  }
+
+  Future<List<TemplateElement>> getTemplateElements(String templateId) async {
+    try {
+      final response = await _supabase
+          .from('template_elements')
+          .select()
+          .eq('template_id', templateId)
+          .order('created_at');
+
+      return (response as List).map((json) => TemplateElement.fromJson(json)).toList();
+    } catch (e) {
+      debugPrint('Error fetching template elements: $e');
+      return [];
+    }
+  }
+
+  Future<TemplateCustomization?> getTemplateCustomization(String cardId, String templateId) async {
+    try {
+      final response = await _supabase
+          .from('template_customizations')
+          .select()
+          .eq('card_id', cardId)
+          .eq('template_id', templateId)
+          .single();
+
+      return TemplateCustomization.fromJson(response);
+    } catch (e) {
+      debugPrint('Error fetching template customization: $e');
+      return null;
+    }
+  }
+
+  Future<void> saveTemplateCustomization(TemplateCustomization customization) async {
+    try {
+      await _supabase
+          .from('template_customizations')
+          .upsert(customization.toJson());
+    } catch (e) {
+      debugPrint('Error saving template customization: $e');
+      rethrow;
     }
   }
 
@@ -63,6 +86,41 @@ class TemplateService {
           .eq('id', cardId);
     } catch (e) {
       debugPrint('Error applying template: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> createTemplate(CardTemplate template) async {
+    try {
+      await _supabase
+          .from('templates')
+          .insert(template.toJson());
+    } catch (e) {
+      debugPrint('Error creating template: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> updateTemplate(CardTemplate template) async {
+    try {
+      await _supabase
+          .from('templates')
+          .update(template.toJson())
+          .eq('id', template.id);
+    } catch (e) {
+      debugPrint('Error updating template: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteTemplate(String templateId) async {
+    try {
+      await _supabase
+          .from('templates')
+          .delete()
+          .eq('id', templateId);
+    } catch (e) {
+      debugPrint('Error deleting template: $e');
       rethrow;
     }
   }

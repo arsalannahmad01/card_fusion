@@ -98,15 +98,26 @@ class AnalyticsService {
       final ownerId = await _getCardOwnerId(cardId);
       if (ownerId == null) return;
 
-      await _supabase.from('card_analytics').insert({
+      final data = {
         'card_id': cardId,
         'owner_id': ownerId,
-        'scanner_id': scannerId ?? _supabase.auth.currentUser?.id,
+        'scanner_user_id': scannerId ?? _supabase.auth.currentUser?.id,
         'event_type': eventType.name,
-        'metadata': metadata ?? {},
-      });
+        'device_info': {
+          'type': metadata?['device_type'] ?? 'web',
+          'platform': metadata?['platform'] ?? 'web',
+        },
+        'location': null,
+        'scan_source': metadata?['source'] ?? 'direct',
+        'created_at': DateTime.now().toIso8601String(),
+      };
+
+      debugPrint('Recording analytics event: $data');
+      await _supabase.from('card_analytics').insert(data);
+      debugPrint('Analytics event recorded successfully');
     } catch (e) {
       debugPrint('Error tracking analytics event: $e');
+      rethrow;
     }
   }
 
