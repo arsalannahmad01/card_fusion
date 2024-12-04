@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/card_model.dart';
+import '../models/card_template_model.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'dart:convert';
 import 'dart:math' show pi;
@@ -24,39 +25,9 @@ class CardTemplateWidget extends StatefulWidget {
   State<CardTemplateWidget> createState() => _CardTemplateWidgetState();
 }
 
-class _CardTemplateWidgetState extends State<CardTemplateWidget>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  bool _showFrontSide = true;
-
+class _CardTemplateWidgetState extends State<CardTemplateWidget> {
   // Standard business card ratio (3.5 x 2 inches)
   static const double _aspectRatio = 1.75;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _toggleCard() {
-    if (_showFrontSide) {
-      _controller.forward();
-    } else {
-      _controller.reverse();
-    }
-    setState(() {
-      _showFrontSide = !_showFrontSide;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -66,16 +37,60 @@ class _CardTemplateWidgetState extends State<CardTemplateWidget>
         width: widget.width ?? MediaQuery.of(context).size.width * 0.9,
         child: Card(
           elevation: 4,
-          color: _getBackgroundColor(),
-          child: widget.showFront ? _buildFrontSide(context) : _buildBackSide(),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  _getBackgroundColor(),
+                  _getSecondaryColor(),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: widget.showFront ? _buildFrontSide(context) : _buildBackSide(),
+          ),
         ),
       ),
     );
   }
 
   Color _getBackgroundColor() {
-    final colorStr = widget.styles['primaryColor'] as String;
-    return Color(int.parse(colorStr.substring(1), radix: 16) + 0xFF000000);
+    try {
+      final colorStr = widget.styles['primaryColor'] as String?;
+      if (colorStr == null || colorStr.isEmpty) return Colors.blue;
+      return Color(int.parse(colorStr.substring(1), radix: 16) + 0xFF000000);
+    } catch (e) {
+      return Colors.blue;
+    }
+  }
+
+  Color _getSecondaryColor() {
+    try {
+      final colorStr = widget.styles['secondaryColor'] as String?;
+      if (colorStr == null || colorStr.isEmpty) return Colors.blueAccent;
+      return Color(int.parse(colorStr.substring(1), radix: 16) + 0xFF000000);
+    } catch (e) {
+      return Colors.blueAccent;
+    }
+  }
+
+  Color _getTextColor() {
+    try {
+      final colorStr = widget.styles['textColor'] as String?;
+      if (colorStr == null || colorStr.isEmpty) return Colors.white;
+      return Color(int.parse(colorStr.substring(1), radix: 16) + 0xFF000000);
+    } catch (e) {
+      return Colors.white;
+    }
+  }
+
+  String _getFontFamily() {
+    return widget.styles['fontFamily'] as String? ?? 'Roboto';
   }
 
   Widget _buildFrontSide(BuildContext context) {
@@ -110,10 +125,7 @@ class _CardTemplateWidgetState extends State<CardTemplateWidget>
                     widget.card.name[0].toUpperCase(),
                     style: TextStyle(
                       fontSize: 28,
-                      color: Color(int.parse(
-                              widget.styles['primaryColor'].substring(1, 7),
-                              radix: 16) +
-                          0xFF000000),
+                      color: _getBackgroundColor(),
                     ),
                   ),
                 ),
@@ -124,10 +136,11 @@ class _CardTemplateWidgetState extends State<CardTemplateWidget>
                   children: [
                     Text(
                       widget.card.name,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: _getTextColor(),
                         fontSize: 24,
                         fontWeight: FontWeight.w600,
+                        fontFamily: _getFontFamily(),
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -143,10 +156,11 @@ class _CardTemplateWidgetState extends State<CardTemplateWidget>
                         ),
                         child: Text(
                           widget.card.jobTitle!,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.yellow,
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
+                            fontFamily: _getFontFamily(),
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -159,18 +173,20 @@ class _CardTemplateWidgetState extends State<CardTemplateWidget>
           const Spacer(),
           Text(
             widget.card.email,
-            style: const TextStyle(
-              color: Colors.white70,
+            style: TextStyle(
+              color: _getTextColor().withOpacity(0.7),
               fontSize: 16,
+              fontFamily: _getFontFamily(),
             ),
             overflow: TextOverflow.ellipsis,
           ),
           if (widget.card.phone != null)
             Text(
               widget.card.phone!,
-              style: const TextStyle(
-                color: Colors.white70,
+              style: TextStyle(
+                color: _getTextColor().withOpacity(0.7),
                 fontSize: 16,
+                fontFamily: _getFontFamily(),
               ),
               overflow: TextOverflow.ellipsis,
             ),
@@ -191,9 +207,9 @@ class _CardTemplateWidgetState extends State<CardTemplateWidget>
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Colors.white.withOpacity(0.0),
-                  Colors.white.withOpacity(0.05),
-                  Colors.white.withOpacity(0.1),
+                  _getTextColor().withOpacity(0.0),
+                  _getTextColor().withOpacity(0.05),
+                  _getTextColor().withOpacity(0.1),
                 ],
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
@@ -208,7 +224,7 @@ class _CardTemplateWidgetState extends State<CardTemplateWidget>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.2),
+                      color: _getTextColor().withOpacity(0.2),
                       width: 2,
                     ),
                   ),
@@ -219,7 +235,7 @@ class _CardTemplateWidgetState extends State<CardTemplateWidget>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.15),
+                      color: _getTextColor().withOpacity(0.15),
                       width: 2,
                     ),
                   ),
@@ -242,10 +258,7 @@ class _CardTemplateWidgetState extends State<CardTemplateWidget>
                       widget.card.name[0].toUpperCase(),
                       style: TextStyle(
                         fontSize: 28,
-                        color: Color(int.parse(
-                                widget.styles['primaryColor'].substring(1, 7),
-                                radix: 16) +
-                            0xFF000000),
+                        color: _getBackgroundColor(),
                       ),
                     ),
                   ),
@@ -256,19 +269,21 @@ class _CardTemplateWidgetState extends State<CardTemplateWidget>
                       children: [
                         Text(
                           widget.card.name,
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: _getTextColor(),
                             fontSize: 24,
                             fontWeight: FontWeight.w600,
+                            fontFamily: _getFontFamily(),
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
                         if (widget.card.companyName != null)
                           Text(
                             widget.card.companyName!,
-                            style: const TextStyle(
-                              color: Colors.white70,
+                            style: TextStyle(
+                              color: _getTextColor().withOpacity(0.7),
                               fontSize: 16,
+                              fontFamily: _getFontFamily(),
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -280,18 +295,20 @@ class _CardTemplateWidgetState extends State<CardTemplateWidget>
               const Spacer(),
               Text(
                 widget.card.email,
-                style: const TextStyle(
-                  color: Colors.white70,
+                style: TextStyle(
+                  color: _getTextColor().withOpacity(0.7),
                   fontSize: 16,
+                  fontFamily: _getFontFamily(),
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
               if (widget.card.phone != null)
                 Text(
                   widget.card.phone!,
-                  style: const TextStyle(
-                    color: Colors.white70,
+                  style: TextStyle(
+                    color: _getTextColor().withOpacity(0.7),
                     fontSize: 16,
+                    fontFamily: _getFontFamily(),
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -547,32 +564,124 @@ class _CardTemplateWidgetState extends State<CardTemplateWidget>
   }
 
   Widget _buildBackSide() {
+    final primaryColor = _getBackgroundColor();
+    
     return Container(
-      padding: const EdgeInsets.all(24),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            primaryColor,
+            _getSecondaryColor(),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
         children: [
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
+          // Pattern of "Card Fusion" text
+          CustomPaint(
+            painter: CardFusionPatternPainter(
+              textColor: Colors.white.withOpacity(0.15),
             ),
-            padding: const EdgeInsets.all(8),
-            child: QrImageView(
-              data: jsonEncode({'type': 'digital_card', 'id': widget.card.id}),
-              version: QrVersions.auto,
-              size: 120,
-            ),
+            size: Size.infinite,
           ),
-          const SizedBox(width: 16),
-          Image.asset(
-            'lib/assets/logoCF.png',
-            height: 180,
-            // color: Colors.white,
-            fit: BoxFit.contain,
+
+          // Centered QR Code
+          Center(
+            child: Container(
+              width: 160,
+              height: 160,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: QrImageView(
+                data: jsonEncode({
+                  'type': 'digital_card',
+                  'id': widget.card.id,
+                  'name': widget.card.name,
+                }),
+                version: QrVersions.auto,
+                size: 136,
+                backgroundColor: Colors.white,
+                foregroundColor: primaryColor,
+                errorCorrectionLevel: QrErrorCorrectLevel.H,
+                padding: const EdgeInsets.all(0),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
+}
+
+class CardFusionPatternPainter extends CustomPainter {
+  final Color textColor;
+
+  CardFusionPatternPainter({required this.textColor});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final letters = 'CARD FUSION'.split('');
+    final letterPainters = letters.map((letter) => TextPainter(
+      text: TextSpan(
+        text: letter,
+        style: TextStyle(
+          color: textColor,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout()).toList();
+
+    final columnWidth = 40.0; // Width between vertical text columns
+    final letterSpacing = 24.0; // Vertical spacing between letters
+
+    // Calculate total height of one column
+    final columnHeight = letterSpacing * letters.length;
+
+    // Calculate number of columns needed
+    final numColumns = (size.width / columnWidth).ceil() + 1;
+    final numRows = (size.height / columnHeight).ceil() + 1;
+
+    for (int col = 0; col < numColumns; col++) {
+      final x = col * columnWidth;
+      
+      // Offset every other column for a more interesting pattern
+      final yOffset = col.isEven ? 0.0 : letterSpacing / 2;
+      
+      for (int row = -1; row < numRows; row++) {
+        var y = row * columnHeight + yOffset;
+        
+        // Paint each letter vertically
+        for (int i = 0; i < letters.length; i++) {
+          final letterY = y + (i * letterSpacing);
+          if (letterY >= -letterSpacing && letterY <= size.height + letterSpacing) {
+            final painter = letterPainters[i];
+            painter.paint(
+              canvas,
+              Offset(x - (painter.width / 2), letterY),
+            );
+          }
+        }
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(CardFusionPatternPainter oldDelegate) => false;
 }

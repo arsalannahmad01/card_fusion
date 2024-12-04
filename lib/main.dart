@@ -1,5 +1,3 @@
-import 'package:card_fusion/screens/auth/login_screen.dart';
-import 'package:card_fusion/screens/home/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -28,39 +26,7 @@ class CardFusion extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: StreamBuilder<AuthState>(
-        stream: Supabase.instance.client.auth.onAuthStateChange,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const SplashScreen();
-          }
-
-          if (snapshot.hasError) {
-            return const LoginScreen();
-          }
-
-          if (snapshot.hasData) {
-            final authState = snapshot.data!;
-            
-            // Handle different auth states
-            switch (authState.event) {
-              case AuthChangeEvent.signedIn:
-                if (authState.session != null) {
-                  return const HomeScreen();
-                }
-                break;
-              case AuthChangeEvent.signedOut:
-              case AuthChangeEvent.userDeleted:
-                return const LoginScreen();
-              default:
-                break;
-            }
-          }
-
-          // Default to login screen if no other conditions are met
-          return const LoginScreen();
-        },
-      ),
+      home: const SplashScreen(),
     );
   }
 }

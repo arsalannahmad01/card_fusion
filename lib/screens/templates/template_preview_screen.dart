@@ -3,6 +3,7 @@ import 'package:flutter/rendering.dart';
 import '../../models/card_model.dart';
 import '../../models/card_template_model.dart';
 import '../../widgets/card_template_widget.dart';
+import '../../config/theme.dart';
 import 'dart:ui' as ui;
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
@@ -24,282 +25,288 @@ class TemplatePreviewScreen extends StatefulWidget {
   State<TemplatePreviewScreen> createState() => _TemplatePreviewScreenState();
 }
 
-class _TemplatePreviewScreenState extends State<TemplatePreviewScreen> {
-  final GlobalKey _frontCardKey = GlobalKey();
-  final GlobalKey _backCardKey = GlobalKey();
-  final _templateService = TemplateService();
-  bool _isLoading = false;
+class _TemplatePreviewScreenState extends State<TemplatePreviewScreen> with SingleTickerProviderStateMixin {
+  bool _showFront = true;
+  bool _isApplying = false;
+  final GlobalKey _cardKey = GlobalKey();
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeOut,
+      ),
+    );
+    _animationController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.template.name),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.check),
-            onPressed: () {
-              // TODO: Save template selection
-              Navigator.pop(context);
-            },
+      backgroundColor: AppColors.background,
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 120,
+            floating: true,
+            pinned: true,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.primary,
+                      AppColors.secondary,
+                    ],
+                  ),
+                ),
+              ),
+              title: Text(
+                widget.template.name,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              centerTitle: true,
+            ),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+            ),
           ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Front side preview
-            RepaintBoundary(
-              key: _frontCardKey,
-              child: Container(
-                width: 380,
-                height: 220,
-                margin: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  gradient: LinearGradient(
-                    colors: [
-                      Color(int.parse(widget.template.styles['primaryColor'].substring(1, 7), radix: 16) + 0xFF000000),
-                      Color(int.parse(widget.template.styles['secondaryColor'].substring(1, 7), radix: 16) + 0xFF000000),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 10,
-                      spreadRadius: 1,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: CardTemplateWidget(
-                  card: widget.card,
-                  styles: widget.template.styles,
-                  showFront: true,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Back side preview
-            RepaintBoundary(
-              key: _backCardKey,
-              child: Container(
-                width: 380,
-                height: 220,
-                margin: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  gradient: LinearGradient(
-                    colors: [
-                      Color(int.parse(widget.template.styles['primaryColor'].substring(1, 7), radix: 16) + 0xFF000000),
-                      Color(int.parse(widget.template.styles['secondaryColor'].substring(1, 7), radix: 16) + 0xFF000000),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 10,
-                      spreadRadius: 1,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: CardTemplateWidget(
-                  card: widget.card,
-                  styles: widget.template.styles,
-                  showFront: false,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Action buttons
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Share button
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: _isLoading ? null : _shareCardTemplate,
-                      icon: _isLoading 
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Icon(Icons.share),
-                      label: const Text('Share Card Preview'),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Preview Mode',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Switch.adaptive(
+                          value: _showFront,
+                          onChanged: (value) => setState(() => _showFront = value),
+                          activeColor: AppColors.primary,
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  // Apply Template button
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: () async {
-                        try {
-                          setState(() => _isLoading = true);
-                          await _templateService.applyTemplate(widget.card.id, widget.template.id);
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Template applied successfully')),
-                            );
-                            Navigator.pop(context, true);
-                          }
-                        } catch (e) {
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Error applying template: $e')),
-                            );
-                          }
-                        } finally {
-                          if (mounted) {
-                            setState(() => _isLoading = false);
-                          }
-                        }
-                      },
-                      icon: _isLoading 
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Icon(Icons.check),
-                      label: const Text('Apply Template'),
+                  const SizedBox(height: 24),
+                  ScaleTransition(
+                    scale: _scaleAnimation,
+                    child: Hero(
+                      tag: 'template_${widget.template.id}',
+                      child: CardTemplateWidget(
+                        key: _cardKey,
+                        card: widget.card,
+                        styles: widget.template.styles,
+                        showFront: _showFront,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  // Customize Colors button
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: _showColorCustomizationDialog,
-                      icon: const Icon(Icons.palette),
-                      label: const Text('Customize Colors'),
+                  const SizedBox(height: 32),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  // Font Selection button
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: _showFontSelectionDialog,
-                      icon: const Icon(Icons.font_download),
-                      label: const Text('Change Font'),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Template Details',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildDetailRow(
+                          'Style',
+                          widget.template.type.name,
+                          _getTypeIcon(widget.template.type),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildDetailRow(
+                          'Supported Types',
+                          widget.template.supportedCardTypes.length.toString(),
+                          Icons.style,
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+          ),
+        ],
+      ),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, -4),
+            ),
           ],
+        ),
+        child: SafeArea(
+          child: Row(
+            children: [
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _isApplying ? null : () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey[200],
+                    foregroundColor: AppColors.textPrimary,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('Cancel'),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _isApplying ? null : () => Navigator.pop(context, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: _isApplying
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text('Apply Template'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Future<void> _shareCardTemplate() async {
-    try {
-      setState(() => _isLoading = true);
-
-      // Capture front side
-      final frontImage = await _captureCard(_frontCardKey);
-      // Capture back side
-      final backImage = await _captureCard(_backCardKey);
-
-      if (frontImage == null || backImage == null) {
-        throw 'Failed to capture card images';
-      }
-
-      // Save images to temporary files
-      final tempDir = await getTemporaryDirectory();
-      final frontFile = File('${tempDir.path}/card_front.png');
-      final backFile = File('${tempDir.path}/card_back.png');
-
-      await frontFile.writeAsBytes(frontImage);
-      await backFile.writeAsBytes(backImage);
-
-      // Share both images
-      await Share.shareXFiles(
-        [
-          XFile(frontFile.path),
-          XFile(backFile.path),
-        ],
-        text: '''${widget.card.name}'s Digital Card
-        
-Template: ${widget.template.name}
-Type: ${widget.card.type.name}
-
-Scan QR code on the back to save this contact.''',
-      );
-    } catch (e) {
-      debugPrint('Error sharing template: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error sharing template: $e')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  Future<Uint8List?> _captureCard(GlobalKey key) async {
-    try {
-      final boundary = key.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-      final image = await boundary?.toImage(pixelRatio: 3.0);
-      final byteData = await image?.toByteData(format: ui.ImageByteFormat.png);
-      return byteData?.buffer.asUint8List();
-    } catch (e) {
-      debugPrint('Error capturing card: $e');
-      return null;
-    }
-  }
-
-  void _showColorCustomizationDialog() {
-    // TODO: Implement color customization dialog
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Customize Colors'),
-        content: const Text('Color customization coming soon!'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+  Widget _buildDetailRow(String label, String value, IconData icon) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
           ),
-        ],
-      ),
+          child: Icon(
+            icon,
+            size: 20,
+            color: AppColors.primary,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
-  void _showFontSelectionDialog() {
-    // TODO: Implement font selection dialog
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Select Font'),
-        content: const Text('Font selection coming soon!'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
+  IconData _getTypeIcon(TemplateType type) {
+    switch (type) {
+      case TemplateType.modern:
+        return Icons.trending_up;
+      case TemplateType.classic:
+        return Icons.style;
+      case TemplateType.minimal:
+        return Icons.crop_square;
+      case TemplateType.bold:
+        return Icons.format_bold;
+      case TemplateType.elegant:
+        return Icons.diamond_outlined;
+      case TemplateType.professional:
+        return Icons.business_center;
+    }
   }
 } 

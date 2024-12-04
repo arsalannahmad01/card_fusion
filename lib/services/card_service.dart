@@ -26,7 +26,11 @@ class CardService {
               type,
               supported_card_types,
               styles,
-              preview_image
+              preview_image,
+              front_layout,
+              back_layout,
+              created_at,
+              updated_at
             )
           ''')
           .eq('user_id', user.id)
@@ -76,7 +80,11 @@ class CardService {
               type,
               supported_card_types,
               styles,
-              preview_image
+              preview_image,
+              front_layout,
+              back_layout,
+              created_at,
+              updated_at
             )
           ''')
           .eq('id', cardId)
@@ -106,7 +114,11 @@ class CardService {
             type,
             supported_card_types,
             styles,
-            preview_image
+            preview_image,
+            front_layout,
+            back_layout,
+            created_at,
+            updated_at
           )
         ''')
         .single();
@@ -132,7 +144,11 @@ class CardService {
             type,
             supported_card_types,
             styles,
-            preview_image
+            preview_image,
+            front_layout,
+            back_layout,
+            created_at,
+            updated_at
           )
         ''')
         .single();
@@ -237,14 +253,29 @@ class CardService {
           .select('card_id')
           .eq('user_id', _supabase.auth.currentUser!.id);
 
-
       final cardIds =
           (response as List).map((r) => r['card_id'] as String).toList();
 
       if (cardIds.isEmpty) return [];
 
-      final cards =
-          await _supabase.from('digital_cards').select().in_('id', cardIds);
+      final cards = await _supabase
+          .from('digital_cards')
+          .select('''
+            *,
+            template:templates(
+              id,
+              name,
+              type,
+              supported_card_types,
+              styles,
+              preview_image,
+              front_layout,
+              back_layout,
+              created_at,
+              updated_at
+            )
+          ''')
+          .in_('id', cardIds);
 
       return (cards as List).map((json) => DigitalCard.fromJson(json)).toList();
     } catch (e) {

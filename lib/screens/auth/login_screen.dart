@@ -207,8 +207,10 @@ class _LoginScreenState extends State<LoginScreen>
                                           width: 24,
                                           height: 24,
                                           padding: const EdgeInsets.all(2.0),
-                                          child: const CircularProgressIndicator(
+                                          child:
+                                              const CircularProgressIndicator(
                                             strokeWidth: 3,
+                                            color: AppColors.textLight,
                                           ),
                                         )
                                       : const FaIcon(FontAwesomeIcons.google),
@@ -216,9 +218,12 @@ class _LoginScreenState extends State<LoginScreen>
                                     _isLoading
                                         ? 'Signing in...'
                                         : 'Continue with Google',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
+                                      color: _isLoading
+                                          ? AppColors.textLight
+                                          : AppColors.primary,
                                     ),
                                   ),
                                   style: ElevatedButton.styleFrom(
@@ -261,7 +266,8 @@ class _LoginScreenState extends State<LoginScreen>
                                   Text(
                                     'and',
                                     style: TextStyle(
-                                      color: AppColors.textLight.withOpacity(0.7),
+                                      color:
+                                          AppColors.textLight.withOpacity(0.7),
                                     ),
                                   ),
                                   TextButton(

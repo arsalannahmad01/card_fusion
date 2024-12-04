@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'card_model.dart' show CardType;
+import 'template_element_model.dart';
 
 enum TemplateType {
   modern,
@@ -17,6 +18,10 @@ class CardTemplate {
   final List<CardType> supportedCardTypes;
   final Map<String, dynamic> styles;
   final String previewImage;
+  final Map<String, dynamic> frontLayout;
+  final Map<String, dynamic> backLayout;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   const CardTemplate({
     required this.id,
@@ -25,6 +30,10 @@ class CardTemplate {
     required this.supportedCardTypes,
     required this.styles,
     required this.previewImage,
+    required this.frontLayout,
+    required this.backLayout,
+    required this.createdAt,
+    required this.updatedAt,
   });
 
   bool supportsCardType(CardType cardType) {
@@ -38,6 +47,10 @@ class CardTemplate {
     'supported_card_types': supportedCardTypes.map((t) => t.name).toList(),
     'styles': styles,
     'preview_image': previewImage,
+    'front_layout': frontLayout,
+    'back_layout': backLayout,
+    'created_at': createdAt.toIso8601String(),
+    'updated_at': updatedAt.toIso8601String(),
   };
 
   factory CardTemplate.fromJson(Map<String, dynamic> json) => CardTemplate(
@@ -45,9 +58,13 @@ class CardTemplate {
     name: json['name'],
     type: TemplateType.values.byName(json['type']),
     supportedCardTypes: (json['supported_card_types'] as List)
-        .map((t) => CardType.values.byName(t))
+        .map((t) => CardType.values.byName(t.toString()))
         .toList(),
     styles: Map<String, dynamic>.from(json['styles']),
     previewImage: json['preview_image'],
+    frontLayout: Map<String, dynamic>.from(json['front_layout']),
+    backLayout: Map<String, dynamic>.from(json['back_layout']),
+    createdAt: DateTime.parse(json['created_at']),
+    updatedAt: DateTime.parse(json['updated_at']),
   );
 } 

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'dart:typed_data';
 import '../../models/card_model.dart';
 import '../../services/supabase_service.dart';
+import '../../services/analytics_service.dart';
 import '../../config/theme.dart';
 import '../../widgets/card_template_widget.dart';
 import '../templates/card_templates_screen.dart';
@@ -10,6 +12,9 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:math' show pi;
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:ui' as ui;
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 
 class CardViewerScreen extends StatefulWidget {
   final DigitalCard card;
@@ -32,6 +37,12 @@ class _CardViewerScreenState extends State<CardViewerScreen>
   bool _isFrontVisible = true;
   bool _isLoading = false;
   final _authService = SupabaseService();
+  final _analyticsService = AnalyticsService();
+  final GlobalKey _cardKey = GlobalKey();
+  
+  // Pre-build both sides
+  Widget? _frontSide;
+  Widget? _backSide;
 
   @override
   void initState() {
@@ -48,15 +59,59 @@ class _CardViewerScreenState extends State<CardViewerScreen>
       ),
     );
 
-    _flipAnimation.addListener(() {
-      setState(() {
-        if (_flipAnimation.value >= 0.5 && _isFrontVisible) {
-          _isFrontVisible = false;
-        } else if (_flipAnimation.value < 0.5 && !_isFrontVisible) {
-          _isFrontVisible = true;
-        }
-      });
-    });
+    _trackCardView();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _initializeCardSides();
+  }
+
+  void _initializeCardSides() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final cardWidth = screenWidth - 32;
+    final cardHeight = cardWidth / 1.75;
+
+    _frontSide = CardTemplateWidget(
+      key: const ValueKey('front'),
+      card: widget.card,
+      styles: widget.card.template?.styles ?? {},
+      showFront: true,
+      width: cardWidth,
+      height: cardHeight,
+    );
+
+    _backSide = CardTemplateWidget(
+      key: const ValueKey('back'),
+      card: widget.card,
+      styles: widget.card.template?.styles ?? {},
+      showFront: false,
+      width: cardWidth,
+      height: cardHeight,
+    );
+  }
+
+  Future<void> _trackCardView() async {
+    final currentUser = _authService.currentUser;
+    // Only track view if viewing someone else's card
+    if (currentUser?.id != widget.card.userId) {
+      try {
+        await _analyticsService.trackEvent(
+          cardId: widget.card.id,
+          eventType: CardAnalyticEvent.view,
+          scannerId: currentUser?.id,
+          metadata: {
+            'device_type': 'mobile',
+            'platform': 'flutter',
+            'source': widget.isSavedCard ? 'saved_cards' : 'scan',
+            'viewer_email': currentUser?.email,
+          },
+        );
+      } catch (e) {
+        debugPrint('Error tracking card view: $e');
+      }
+    }
   }
 
   @override
@@ -66,10 +121,20 @@ class _CardViewerScreenState extends State<CardViewerScreen>
   }
 
   void _toggleCard() {
+    if (_flipController.isAnimating) return;
+    
     if (_isFrontVisible) {
-      _flipController.forward();
+      _flipController.forward().then((_) {
+        if (mounted) {
+          setState(() => _isFrontVisible = false);
+        }
+      });
     } else {
-      _flipController.reverse();
+      _flipController.reverse().then((_) {
+        if (mounted) {
+          setState(() => _isFrontVisible = true);
+        }
+      });
     }
   }
 
@@ -149,20 +214,32 @@ class _CardViewerScreenState extends State<CardViewerScreen>
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   _buildCardPreview(),
-                  const SizedBox(height: 24),
-                  _buildActionButtons(),
-                  const SizedBox(height: 24),
-                  _buildContactInfo(),
-                  if (widget.card.socialLinks?.isNotEmpty ?? false) ...[
-                    const SizedBox(height: 24),
-                    _buildSocialLinks(),
-                  ],
-                  const SizedBox(height: 24),
-                  _buildAdditionalInfo(),
                 ],
               ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            sliver: SliverToBoxAdapter(
+              child: _buildActionButtons(),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                _buildContactInfo(),
+                if (widget.card.socialLinks?.isNotEmpty ?? false) ...[
+                  const SizedBox(height: 24),
+                  _buildSocialLinks(),
+                ],
+                const SizedBox(height: 24),
+                _buildAdditionalInfo(),
+                const SizedBox(height: 24), // Bottom padding
+              ]),
             ),
           ),
         ],
@@ -171,50 +248,66 @@ class _CardViewerScreenState extends State<CardViewerScreen>
   }
 
   Widget _buildCardPreview() {
+    if (_frontSide == null || _backSide == null) {
+      _initializeCardSides();
+    }
+
+    final screenWidth = MediaQuery.of(context).size.width;
+    final cardWidth = screenWidth - 32;
+    final cardHeight = cardWidth / 1.75;
+
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        GestureDetector(
-          onTap: _toggleCard,
-          child: AnimatedBuilder(
-            animation: _flipAnimation,
-            builder: (context, child) {
-              final angle = _flipAnimation.value * pi;
-              return Transform(
-                transform: Matrix4.identity()
-                  ..setEntry(3, 2, 0.001)
-                  ..rotateY(angle),
-                alignment: Alignment.center,
-                child: CardTemplateWidget(
-                  key: ValueKey(_isFrontVisible),
-                  card: widget.card,
-                  styles: widget.card.template?.styles ??
-                      {
-                        'primaryColor': '#000000',
-                        'secondaryColor': '#FFFFFF',
-                        'fontFamily': 'Roboto',
-                      },
-                  showFront: _isFrontVisible,
-                ),
-              );
-            },
+        SizedBox(
+          width: cardWidth,
+          height: cardHeight,
+          child: GestureDetector(
+            onTap: _toggleCard,
+            child: AnimatedBuilder(
+              animation: _flipAnimation,
+              builder: (context, child) {
+                final angle = _flipAnimation.value * pi;
+                
+                return Stack(
+                  children: [
+                    // Front side
+                    Transform(
+                      transform: Matrix4.identity()
+                        ..setEntry(3, 2, 0.002)
+                        ..rotateY(angle),
+                      alignment: Alignment.center,
+                      child: _flipAnimation.value <= 0.5 ? _frontSide! : const SizedBox.shrink(),
+                    ),
+                    // Back side
+                    Transform(
+                      transform: Matrix4.identity()
+                        ..setEntry(3, 2, 0.002)
+                        ..rotateY(angle - pi),
+                      alignment: Alignment.center,
+                      child: _flipAnimation.value > 0.5 ? _backSide! : const SizedBox.shrink(),
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 16),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               Icons.touch_app,
-              color: AppColors.textSecondary,
               size: 16,
+              color: AppColors.textSecondary,
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 8),
             Text(
               'Tap card to flip',
               style: TextStyle(
+                fontSize: 14,
                 color: AppColors.textSecondary,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
               ),
             ),
           ],
@@ -225,38 +318,61 @@ class _CardViewerScreenState extends State<CardViewerScreen>
 
   Widget _buildActionButtons() {
     final isOwner = _authService.currentUser?.id == widget.card.userId;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final buttonWidth = (screenWidth - 56) /
+        (isOwner ? 3 : 1); // 56 = total horizontal padding and spacing
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        if (isOwner) ...[
-          _buildActionButton(
-            icon: Icons.analytics,
-            label: 'Analytics',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => AnalyticsScreen(initialCard: widget.card),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
+            children: [
+              if (isOwner) ...[
+                SizedBox(
+                  width: buttonWidth,
+                  child: _buildActionButton(
+                    icon: Icons.analytics,
+                    label: 'Analytics',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            AnalyticsScreen(initialCard: widget.card),
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: buttonWidth,
+                  child: _buildActionButton(
+                    icon: Icons.style,
+                    label: 'Templates',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CardTemplatesScreen(card: widget.card),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+              SizedBox(
+                width: buttonWidth,
+                child: _buildActionButton(
+                  icon: Icons.share,
+                  label: 'Share',
+                  onTap: _shareCard,
+                ),
               ),
-            ),
-          ),
-          _buildActionButton(
-            icon: Icons.style,
-            label: 'Templates',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => CardTemplatesScreen(card: widget.card),
-              ),
-            ),
-          ),
-        ],
-        _buildActionButton(
-          icon: Icons.share,
-          label: 'Share',
-          onTap: _shareCard,
-        ),
-      ],
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -269,7 +385,8 @@ class _CardViewerScreenState extends State<CardViewerScreen>
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        constraints: const BoxConstraints(minHeight: 72),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
@@ -282,19 +399,23 @@ class _CardViewerScreenState extends State<CardViewerScreen>
           ],
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               icon,
               color: AppColors.primary,
-              size: 24,
+              size: 28,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             Text(
               label,
               style: TextStyle(
                 color: AppColors.textPrimary,
+                fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -755,16 +876,33 @@ class _CardViewerScreenState extends State<CardViewerScreen>
   Future<void> _shareCard() async {
     setState(() => _isLoading = true);
     try {
-      await Share.share(
-        '''${widget.card.name}'s Digital Card
+      // Capture front card
+      final frontBytes = await _captureCard(_cardKey);
+      final frontFile = await _saveImageToTemp(frontBytes, 'front_card.png');
+
+      // Flip card and wait for animation
+      _toggleCard();
+      await Future.delayed(const Duration(milliseconds: 800));
+
+      // Capture back card
+      final backBytes = await _captureCard(_cardKey);
+      final backFile = await _saveImageToTemp(backBytes, 'back_card.png');
+
+      // Share both images
+      await Share.shareFiles(
+        [frontFile.path, backFile.path],
+        text: '''${widget.card.name}'s Digital Card
 
 ${widget.card.type.name.toUpperCase()}
 ${widget.card.email}
 ${widget.card.phone ?? ''}
-${widget.card.website ?? ''}
-
-Scan the QR code to save this contact.''',
+${widget.card.website ?? ''}''',
       );
+
+      // Flip card back if needed
+      if (!_isFrontVisible) {
+        _toggleCard();
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -776,6 +914,31 @@ Scan the QR code to save this contact.''',
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  Future<Uint8List?> _captureCard(GlobalKey key) async {
+    try {
+      final boundary =
+          key.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) return null;
+
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+
+      return byteData?.buffer.asUint8List();
+    } catch (e) {
+      debugPrint('Error capturing card: $e');
+      return null;
+    }
+  }
+
+  Future<File> _saveImageToTemp(Uint8List? bytes, String fileName) async {
+    if (bytes == null) throw 'Failed to capture card image';
+
+    final tempDir = await getTemporaryDirectory();
+    final file = File('${tempDir.path}/$fileName');
+    await file.writeAsBytes(bytes);
+    return file;
   }
 
   Future<void> _launchUrl(String url) async {

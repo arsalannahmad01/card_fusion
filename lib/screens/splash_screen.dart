@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import 'auth/login_screen.dart';
+import 'home/home_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -39,18 +41,31 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     _controller.forward().then((_) {
       Future.delayed(const Duration(seconds: 1), () {
         if (mounted) {
-          Navigator.of(context).pushReplacement(
-            PageRouteBuilder(
-              pageBuilder: (context, animation, secondaryAnimation) => const LoginScreen(),
-              transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                return FadeTransition(opacity: animation, child: child);
-              },
-              transitionDuration: const Duration(milliseconds: 500),
-            ),
-          );
+          _checkAuthAndNavigate();
         }
       });
     });
+  }
+
+  Future<void> _checkAuthAndNavigate() async {
+    final session = Supabase.instance.client.auth.currentSession;
+    
+    if (!mounted) return;
+
+    final route = MaterialPageRoute(
+      builder: (_) => session != null ? const HomeScreen() : const LoginScreen(),
+    );
+
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => 
+          FadeTransition(
+            opacity: animation,
+            child: route.builder(context),
+          ),
+        transitionDuration: const Duration(milliseconds: 500),
+      ),
+    );
   }
 
   @override
