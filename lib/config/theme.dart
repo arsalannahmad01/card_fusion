@@ -20,21 +20,19 @@ class AppColors {
 class AppTheme {
   static ThemeData get lightTheme {
     return ThemeData(
-      colorScheme: ColorScheme.light(
+      colorScheme: const ColorScheme.light(
         primary: AppColors.primary,
         secondary: AppColors.secondary,
         surface: AppColors.surface,
-        background: AppColors.background,
         error: AppColors.error,
         onPrimary: AppColors.textLight,
         onSecondary: AppColors.textLight,
         onSurface: AppColors.textPrimary,
-        onBackground: AppColors.textPrimary,
         onError: AppColors.textLight,
         brightness: Brightness.light,
       ),
       useMaterial3: true,
-      appBarTheme: AppBarTheme(
+      appBarTheme: const AppBarTheme(
         centerTitle: true,
         elevation: 0,
         backgroundColor: AppColors.primary,
@@ -61,7 +59,7 @@ class AppTheme {
           ),
         ),
       ),
-      textTheme: TextTheme(
+      textTheme: const TextTheme(
         headlineLarge: TextStyle(
           color: AppColors.textPrimary,
           fontSize: 32,

@@ -5,7 +5,8 @@ import '../card_viewer/card_viewer_screen.dart';
 import '../../services/analytics_service.dart';
 import '../../config/theme.dart';
 import 'dart:io' show Platform;
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../../utils/app_error.dart';
+import '../../utils/error_display.dart';
 
 class ScannedCardPreviewScreen extends StatefulWidget {
   final DigitalCard card;
@@ -204,7 +205,7 @@ class _ScannedCardPreviewScreenState extends State<ScannedCardPreviewScreen> wit
                   child: Container(
                     width: 60,
                     height: 60,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -243,7 +244,7 @@ class _ScannedCardPreviewScreenState extends State<ScannedCardPreviewScreen> wit
                         const SizedBox(height: 4),
                         Text(
                           widget.card.jobTitle!,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 16,
                             color: AppColors.textSecondary,
                           ),
@@ -314,7 +315,7 @@ class _ScannedCardPreviewScreenState extends State<ScannedCardPreviewScreen> wit
         Expanded(
           child: Text(
             text,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
               color: AppColors.textPrimary,
             ),
@@ -352,14 +353,14 @@ class _ScannedCardPreviewScreenState extends State<ScannedCardPreviewScreen> wit
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: AppColors.primary),
+                    side: const BorderSide(color: AppColors.primary),
                   ),
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.visibility_outlined, color: AppColors.primary),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     Text(
                       'View Details',
                       style: TextStyle(
@@ -434,44 +435,16 @@ class _ScannedCardPreviewScreenState extends State<ScannedCardPreviewScreen> wit
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.check_circle_outline, color: Colors.white),
-                const SizedBox(width: 8),
-                const Text('Card saved successfully'),
-              ],
-            ),
-            backgroundColor: AppColors.primary,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-        );
         Navigator.pop(context, true);
       }
-    } catch (e) {
-      debugPrint('Error saving card: $e');
+    } catch (e, stackTrace) {
+      final error = AppError.handleError(e, stackTrace);
+      if (mounted) {
+        ErrorDisplay.showError(context, error);
+      }
+    } finally {
       if (mounted) {
         setState(() => _isSaving = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error_outline, color: Colors.white),
-                const SizedBox(width: 8),
-                Expanded(child: Text('Error saving card: $e')),
-              ],
-            ),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-        );
       }
     }
   }

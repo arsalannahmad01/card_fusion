@@ -1,4 +1,3 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'card_template_model.dart';
 
 enum CardType { individual, business, company }
@@ -48,8 +47,8 @@ class DigitalCard {
     this.age,
     DateTime? createdAt,
     DateTime? updatedAt,
-  }) : this.createdAt = createdAt ?? DateTime.now(),
-       this.updatedAt = updatedAt ?? DateTime.now();
+  }) : createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
 
   factory DigitalCard.fromJson(Map<String, dynamic> json) {
     CardTemplate? template;

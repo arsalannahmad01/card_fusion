@@ -1,8 +1,8 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/card_model.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
-import 'dart:io';
 import 'dart:typed_data' show Uint8List;
+import '../utils/error_handler.dart';
 
 class CardService {
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -11,60 +11,27 @@ class CardService {
     try {
       final user = _supabase.auth.currentUser;
       if (user == null) {
-        debugPrint('No authenticated user found');
-        return [];
+        throw AppError(
+          message: 'You must be signed in to view cards',
+          type: ErrorType.authentication,
+        );
       }
 
-      debugPrint('Fetching cards for user: ${user.id}');
       final response = await _supabase
           .from('digital_cards')
-          .select('''
-            *,
-            template:templates(
-              id,
-              name,
-              type,
-              supported_card_types,
-              styles,
-              preview_image,
-              front_layout,
-              back_layout,
-              created_at,
-              updated_at
-            )
-          ''')
+          .select()
           .eq('user_id', user.id)
           .order('created_at', ascending: false);
 
-      debugPrint('Raw response: $response');
-      
-      if (response == null || response is! List) {
-        debugPrint('Invalid response format: ${response.runtimeType}');
-        return [];
-      }
-
-      final cards = <DigitalCard>[];
-      for (final json in response) {
-        try {
-          debugPrint('Processing card: ${json['id']}');
-          if (json['template'] != null) {
-            debugPrint('Template data: ${json['template']}');
-          }
-          final card = DigitalCard.fromJson(json);
-          cards.add(card);
-        } catch (e, stackTrace) {
-          debugPrint('Error parsing card ${json['id']}: $e');
-          debugPrint('Card data: $json');
-          debugPrint('Stack trace: $stackTrace');
-        }
-      }
-          
-      debugPrint('Successfully parsed ${cards.length} cards');
-      return cards;
+      return (response as List).map((json) => DigitalCard.fromJson(json)).toList();
     } catch (e, stackTrace) {
-      debugPrint('Error fetching cards: $e');
-      debugPrint('Stack trace: $stackTrace');
-      return [];
+      if (e is AppError) rethrow;
+      throw AppError(
+        message: 'Failed to load cards',
+        type: ErrorType.database,
+        originalError: e,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -285,10 +252,28 @@ class CardService {
   }
 
   Future<void> saveCard(String cardId) async {
-    await _supabase.from('saved_cards').insert({
-      'card_id': cardId,
-      'user_id': _supabase.auth.currentUser!.id,
-    });
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) {
+        throw AppError(
+          message: 'You must be signed in to save cards',
+          type: ErrorType.authentication,
+        );
+      }
+
+      await _supabase.from('saved_cards').insert({
+        'card_id': cardId,
+        'user_id': userId,
+      });
+    } catch (e, stackTrace) {
+      if (e is AppError) rethrow;
+      throw AppError(
+        message: 'Failed to save card',
+        type: ErrorType.database,
+        originalError: e,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   Future<void> removeSavedCard(String cardId) async {

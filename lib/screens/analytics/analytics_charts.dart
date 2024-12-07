@@ -90,10 +90,10 @@ class AnalyticsCharts extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Row(
+          const Row(
             children: [
               Icon(Icons.pie_chart, color: AppColors.primary),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Text(
                 'Activity Distribution',
                 style: TextStyle(
@@ -180,10 +180,10 @@ class AnalyticsCharts extends StatelessWidget {
           ),
           child: Column(
             children: [
-              Row(
+              const Row(
                 children: [
                   Icon(Icons.timeline, color: AppColors.primary),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   Text(
                     'Activity Over Time',
                     style: TextStyle(
@@ -198,7 +198,7 @@ class AnalyticsCharts extends StatelessWidget {
               Expanded(
                 child: LineChart(
                   LineChartData(
-                    gridData: FlGridData(show: false),
+                    gridData: const FlGridData(show: false),
                     titlesData: FlTitlesData(
                       leftTitles: AxisTitles(
                         sideTitles: SideTitles(
@@ -207,7 +207,7 @@ class AnalyticsCharts extends StatelessWidget {
                           getTitlesWidget: (value, meta) {
                             return Text(
                               value.toInt().toString(),
-                              style: TextStyle(
+                              style: const TextStyle(
                                 color: AppColors.textSecondary,
                                 fontSize: 12,
                               ),
@@ -223,7 +223,7 @@ class AnalyticsCharts extends StatelessWidget {
                             final date = DateTime.fromMillisecondsSinceEpoch(value.toInt());
                             return Text(
                               '${date.day}/${date.month}',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 color: AppColors.textSecondary,
                                 fontSize: 12,
                               ),
@@ -231,10 +231,10 @@ class AnalyticsCharts extends StatelessWidget {
                           },
                         ),
                       ),
-                      rightTitles: AxisTitles(
+                      rightTitles: const AxisTitles(
                         sideTitles: SideTitles(showTitles: false),
                       ),
-                      topTitles: AxisTitles(
+                      topTitles: const AxisTitles(
                         sideTitles: SideTitles(showTitles: false),
                       ),
                     ),
@@ -246,7 +246,7 @@ class AnalyticsCharts extends StatelessWidget {
                         color: AppColors.primary,
                         barWidth: 3,
                         isStrokeCapRound: true,
-                        dotData: FlDotData(show: false),
+                        dotData: const FlDotData(show: false),
                         belowBarData: BarAreaData(
                           show: true,
                           color: AppColors.primary.withOpacity(0.1),
@@ -290,10 +290,10 @@ class AnalyticsCharts extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Row(
+          const Row(
             children: [
               Icon(Icons.location_city, color: AppColors.primary),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Text(
                 'Top Locations',
                 style: TextStyle(
@@ -318,7 +318,7 @@ class AnalyticsCharts extends StatelessWidget {
                       getTitlesWidget: (value, meta) {
                         return Text(
                           value.toInt().toString(),
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: AppColors.textSecondary,
                             fontSize: 12,
                           ),
@@ -343,7 +343,7 @@ class AnalyticsCharts extends StatelessWidget {
                             padding: const EdgeInsets.only(top: 8, right: 8),
                             child: Text(
                               displayName,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 color: AppColors.textSecondary,
                                 fontSize: 12,
                               ),
@@ -355,15 +355,15 @@ class AnalyticsCharts extends StatelessWidget {
                       },
                     ),
                   ),
-                  rightTitles: AxisTitles(
+                  rightTitles: const AxisTitles(
                     sideTitles: SideTitles(showTitles: false),
                   ),
-                  topTitles: AxisTitles(
+                  topTitles: const AxisTitles(
                     sideTitles: SideTitles(showTitles: false),
                   ),
                 ),
                 borderData: FlBorderData(show: false),
-                gridData: FlGridData(show: false),
+                gridData: const FlGridData(show: false),
                 barGroups: List.generate(
                   displayData.length,
                   (index) => BarChartGroupData(
@@ -385,7 +385,7 @@ class AnalyticsCharts extends StatelessWidget {
           ),
           if (cityData.length > 5) ...[
             const SizedBox(height: 8),
-            Text(
+            const Text(
               '* Showing top 5 locations',
               style: TextStyle(
                 color: AppColors.textSecondary,
@@ -426,7 +426,7 @@ class AnalyticsCharts extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               message,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 16,
                 color: AppColors.textSecondary,
                 fontWeight: FontWeight.w500,
@@ -452,7 +452,7 @@ class AnalyticsCharts extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           '$label ($value)',
-          style: TextStyle(
+          style: const TextStyle(
             color: AppColors.textSecondary,
             fontSize: 14,
           ),

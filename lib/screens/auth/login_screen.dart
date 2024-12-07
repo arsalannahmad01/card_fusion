@@ -130,14 +130,14 @@ class _LoginScreenState extends State<LoginScreen>
                                   ),
                                 ],
                               ),
-                              child: Icon(
+                              child: const Icon(
                                 Icons.contact_page,
                                 size: 50,
                                 color: AppColors.secondary,
                               ),
                             ),
                             const SizedBox(height: 24),
-                            Text(
+                            const Text(
                               'Welcome to Card Fusion',
                               style: TextStyle(
                                 fontSize: 28,
@@ -255,7 +255,7 @@ class _LoginScreenState extends State<LoginScreen>
                                         builder: (_) => const TermsScreen(),
                                       ),
                                     ),
-                                    child: Text(
+                                    child: const Text(
                                       'Terms of Service',
                                       style: TextStyle(
                                         color: AppColors.textLight,
@@ -277,7 +277,7 @@ class _LoginScreenState extends State<LoginScreen>
                                         builder: (_) => const PrivacyScreen(),
                                       ),
                                     ),
-                                    child: Text(
+                                    child: const Text(
                                       'Privacy Policy',
                                       style: TextStyle(
                                         color: AppColors.textLight,
@@ -320,7 +320,7 @@ class _LoginScreenState extends State<LoginScreen>
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
+              style: const TextStyle(
                 color: AppColors.textLight,
                 fontSize: 16,
               ),

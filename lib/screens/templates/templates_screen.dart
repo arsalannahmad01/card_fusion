@@ -107,7 +107,7 @@ class _TemplatesScreenState extends State<TemplatesScreen> with SingleTickerProv
             elevation: 0,
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -181,7 +181,7 @@ class _TemplatesScreenState extends State<TemplatesScreen> with SingleTickerProv
                       color: AppColors.secondary.withOpacity(0.5),
                     ),
                     const SizedBox(height: 16),
-                    Text(
+                    const Text(
                       'No templates available',
                       style: TextStyle(
                         fontSize: 20,
@@ -214,8 +214,8 @@ class _TemplatesScreenState extends State<TemplatesScreen> with SingleTickerProv
             SliverToBoxAdapter(
               child: FadeTransition(
                 opacity: _fadeAnimation,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+                child: const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 24, 16, 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -227,7 +227,7 @@ class _TemplatesScreenState extends State<TemplatesScreen> with SingleTickerProv
                           color: AppColors.textPrimary,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       Text(
                         'Select a template that represents your brand',
                         style: TextStyle(
@@ -235,7 +235,7 @@ class _TemplatesScreenState extends State<TemplatesScreen> with SingleTickerProv
                           color: AppColors.textSecondary,
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      SizedBox(height: 24),
                     ],
                   ),
                 ),
@@ -325,7 +325,7 @@ class _TemplateCard extends StatelessWidget {
                         errorBuilder: (context, error, stackTrace) {
                           return Container(
                             color: AppColors.secondary.withOpacity(0.1),
-                            child: Center(
+                            child: const Center(
                               child: Icon(
                                 Icons.image_not_supported_outlined,
                                 color: AppColors.secondary,
@@ -352,7 +352,7 @@ class _TemplateCard extends StatelessWidget {
                                 color: Colors.white,
                                 shape: BoxShape.circle,
                               ),
-                              child: Icon(
+                              child: const Icon(
                                 Icons.check,
                                 color: AppColors.primary,
                                 size: 24,
@@ -410,7 +410,7 @@ class _TemplateCard extends StatelessWidget {
                           const SizedBox(width: 4),
                           Text(
                             '${template.supportedCardTypes.length} styles',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 12,
                               color: AppColors.textSecondary,
                             ),

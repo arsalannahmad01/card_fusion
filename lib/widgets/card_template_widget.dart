@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/card_model.dart';
-import '../models/card_template_model.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'dart:convert';
-import 'dart:math' show pi;
 
 class CardTemplateWidget extends StatefulWidget {
   final DigitalCard card;
@@ -445,7 +443,7 @@ class _CardTemplateWidgetState extends State<CardTemplateWidget> {
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.location_on,
                                 size: 14,
                                 color: Colors.white70,
@@ -648,8 +646,8 @@ class CardFusionPatternPainter extends CustomPainter {
       textDirection: TextDirection.ltr,
     )..layout()).toList();
 
-    final columnWidth = 40.0; // Width between vertical text columns
-    final letterSpacing = 24.0; // Vertical spacing between letters
+    const columnWidth = 40.0; // Width between vertical text columns
+    const letterSpacing = 24.0; // Vertical spacing between letters
 
     // Calculate total height of one column
     final columnHeight = letterSpacing * letters.length;

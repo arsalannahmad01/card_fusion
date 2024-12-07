@@ -5,6 +5,8 @@ import '../../services/card_service.dart';
 import '../../services/supabase_service.dart';
 import '../../config/theme.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../../utils/error_display.dart';
+import '../../utils/app_error.dart';
 
 class CreateCardScreen extends StatefulWidget {
   final DigitalCard? card;
@@ -106,11 +108,15 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   }
 
   Future<void> _saveCard() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-
     try {
+      if (!_formKey.currentState!.validate()) {
+        throw AppError(
+          message: 'Please fill in all required fields',
+          type: ErrorType.validation
+        );
+      }
+
+      setState(() => _isLoading = true);
       final user = _authService.currentUser;
       if (user == null) throw 'User not authenticated';
 
@@ -160,15 +166,12 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       } else {
         await _cardService.updateCard(card);
       }
-
+      
+      if (mounted) Navigator.pop(context, true);
+    } catch (e, stackTrace) {
+      final error = AppError.handleError(e, stackTrace);
       if (mounted) {
-        Navigator.pop(context, true);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving card: $e')),
-        );
+        ErrorDisplay.showError(context, error);
       }
     } finally {
       if (mounted) {
@@ -185,7 +188,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         flexibleSpace: Container(
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -407,7 +410,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                   const SizedBox(height: 32),
                   Container(
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
+                      gradient: const LinearGradient(
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
                         colors: [
@@ -483,7 +486,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
         children: [
           Text(
             title,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: AppColors.primary,
@@ -521,11 +524,11 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: AppColors.primary, width: 2),
+            borderSide: const BorderSide(color: AppColors.primary, width: 2),
           ),
           filled: true,
           fillColor: Colors.grey.shade50,
-          labelStyle: TextStyle(
+          labelStyle: const TextStyle(
             color: AppColors.textSecondary,
           ),
         ),

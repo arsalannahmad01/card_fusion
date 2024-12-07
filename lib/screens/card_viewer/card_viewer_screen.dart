@@ -15,6 +15,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'dart:ui' as ui;
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import '../../utils/error_handler.dart';
 
 class CardViewerScreen extends StatefulWidget {
   final DigitalCard card;
@@ -154,7 +155,7 @@ class _CardViewerScreenState extends State<CardViewerScreen>
             elevation: 0,
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -259,42 +260,45 @@ class _CardViewerScreenState extends State<CardViewerScreen>
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(
-          width: cardWidth,
-          height: cardHeight,
-          child: GestureDetector(
-            onTap: _toggleCard,
-            child: AnimatedBuilder(
-              animation: _flipAnimation,
-              builder: (context, child) {
-                final angle = _flipAnimation.value * pi;
-                
-                return Stack(
-                  children: [
-                    // Front side
-                    Transform(
-                      transform: Matrix4.identity()
-                        ..setEntry(3, 2, 0.002)
-                        ..rotateY(angle),
-                      alignment: Alignment.center,
-                      child: _flipAnimation.value <= 0.5 ? _frontSide! : const SizedBox.shrink(),
-                    ),
-                    // Back side
-                    Transform(
-                      transform: Matrix4.identity()
-                        ..setEntry(3, 2, 0.002)
-                        ..rotateY(angle - pi),
-                      alignment: Alignment.center,
-                      child: _flipAnimation.value > 0.5 ? _backSide! : const SizedBox.shrink(),
-                    ),
-                  ],
-                );
-              },
+        RepaintBoundary(
+          key: _cardKey,
+          child: SizedBox(
+            width: cardWidth,
+            height: cardHeight,
+            child: GestureDetector(
+              onTap: _toggleCard,
+              child: AnimatedBuilder(
+                animation: _flipAnimation,
+                builder: (context, child) {
+                  final angle = _flipAnimation.value * pi;
+                  
+                  return Stack(
+                    children: [
+                      // Front side
+                      Transform(
+                        transform: Matrix4.identity()
+                          ..setEntry(3, 2, 0.002)
+                          ..rotateY(angle),
+                        alignment: Alignment.center,
+                        child: _flipAnimation.value <= 0.5 ? _frontSide! : const SizedBox.shrink(),
+                      ),
+                      // Back side
+                      Transform(
+                        transform: Matrix4.identity()
+                          ..setEntry(3, 2, 0.002)
+                          ..rotateY(angle - pi),
+                        alignment: Alignment.center,
+                        child: _flipAnimation.value > 0.5 ? _backSide! : const SizedBox.shrink(),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
         ),
         const SizedBox(height: 16),
-        Row(
+        const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
@@ -302,7 +306,7 @@ class _CardViewerScreenState extends State<CardViewerScreen>
               size: 16,
               color: AppColors.textSecondary,
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             Text(
               'Tap card to flip',
               style: TextStyle(
@@ -410,7 +414,7 @@ class _CardViewerScreenState extends State<CardViewerScreen>
             const SizedBox(height: 8),
             Text(
               label,
-              style: TextStyle(
+              style: const TextStyle(
                 color: AppColors.textPrimary,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
@@ -452,14 +456,14 @@ class _CardViewerScreenState extends State<CardViewerScreen>
                 topRight: Radius.circular(16),
               ),
             ),
-            child: Row(
+            child: const Row(
               children: [
                 Icon(
                   Icons.contact_mail,
                   color: AppColors.primary,
                   size: 24,
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Text(
                   'Contact Information',
                   style: TextStyle(
@@ -550,7 +554,7 @@ class _CardViewerScreenState extends State<CardViewerScreen>
                 children: [
                   Text(
                     title,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 14,
                     ),
@@ -558,7 +562,7 @@ class _CardViewerScreenState extends State<CardViewerScreen>
                   const SizedBox(height: 4),
                   Text(
                     value,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
@@ -568,7 +572,7 @@ class _CardViewerScreenState extends State<CardViewerScreen>
               ),
             ),
             if (onTap != null)
-              Icon(
+              const Icon(
                 Icons.arrow_forward_ios,
                 color: AppColors.primary,
                 size: 16,
@@ -608,14 +612,14 @@ class _CardViewerScreenState extends State<CardViewerScreen>
                 topRight: Radius.circular(16),
               ),
             ),
-            child: Row(
+            child: const Row(
               children: [
                 Icon(
                   Icons.share,
                   color: AppColors.secondary,
                   size: 24,
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Text(
                   'Social Media',
                   style: TextStyle(
@@ -753,14 +757,14 @@ class _CardViewerScreenState extends State<CardViewerScreen>
                 topRight: Radius.circular(16),
               ),
             ),
-            child: Row(
+            child: const Row(
               children: [
                 Icon(
                   Icons.person,
                   color: AppColors.primary,
                   size: 24,
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Text(
                   'Professional Information',
                   style: TextStyle(
@@ -820,14 +824,14 @@ class _CardViewerScreenState extends State<CardViewerScreen>
                 topRight: Radius.circular(16),
               ),
             ),
-            child: Row(
+            child: const Row(
               children: [
                 Icon(
                   Icons.business,
                   color: AppColors.secondary,
                   size: 24,
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Text(
                   'Business Information',
                   style: TextStyle(
@@ -878,36 +882,66 @@ class _CardViewerScreenState extends State<CardViewerScreen>
     try {
       // Capture front card
       final frontBytes = await _captureCard(_cardKey);
+      if (frontBytes == null) {
+        throw AppError(
+          message: 'Failed to capture front side of card. Please try again.',
+          type: ErrorType.capture,
+        );
+      }
       final frontFile = await _saveImageToTemp(frontBytes, 'front_card.png');
 
       // Flip card and wait for animation
       _toggleCard();
-      await Future.delayed(const Duration(milliseconds: 800));
+      await Future.delayed(const Duration(milliseconds: 1000));
 
       // Capture back card
       final backBytes = await _captureCard(_cardKey);
+      if (backBytes == null) {
+        throw AppError(
+          message: 'Failed to capture back side of card. Please try again.',
+          type: ErrorType.capture,
+        );
+      }
       final backFile = await _saveImageToTemp(backBytes, 'back_card.png');
 
-      // Share both images
-      await Share.shareFiles(
-        [frontFile.path, backFile.path],
-        text: '''${widget.card.name}'s Digital Card
-
+      // For Android, we need to ensure proper file paths and MIME types
+      final List<String> filePaths = [frontFile.path, backFile.path];
+      
+      final shareText = '''${widget.card.name}'s Digital Card
+      
 ${widget.card.type.name.toUpperCase()}
 ${widget.card.email}
 ${widget.card.phone ?? ''}
-${widget.card.website ?? ''}''',
-      );
+${widget.card.website ?? ''}''';
+
+      try {
+        if (Platform.isAndroid) {
+          await Share.shareXFiles(
+            filePaths.map((path) => XFile(path)).toList(),
+            text: shareText,
+          );
+        } else {
+          await Share.shareFiles(
+            filePaths,
+            text: shareText,
+          );
+        }
+      } catch (e) {
+        throw AppError(
+          message: 'Failed to share card. Please try again.',
+          type: ErrorType.sharing,
+          originalError: e,
+        );
+      }
 
       // Flip card back if needed
       if (!_isFrontVisible) {
         _toggleCard();
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      final error = AppError.handleError(e, stackTrace);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error sharing card: $e')),
-        );
+        ErrorDisplay.showError(context, error);
       }
     } finally {
       if (mounted) {
@@ -918,27 +952,52 @@ ${widget.card.website ?? ''}''',
 
   Future<Uint8List?> _captureCard(GlobalKey key) async {
     try {
-      final boundary =
-          key.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-      if (boundary == null) return null;
+      await Future.delayed(const Duration(milliseconds: 100));
+      
+      final boundary = key.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) {
+        throw AppError(
+          message: 'Failed to find card boundary. Please try again.',
+          type: ErrorType.capture,
+        );
+      }
 
-      final image = await boundary.toImage(pixelRatio: 3.0);
+      final image = await boundary.toImage(pixelRatio: 2.0);
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
 
-      return byteData?.buffer.asUint8List();
-    } catch (e) {
-      debugPrint('Error capturing card: $e');
-      return null;
+      if (byteData == null) {
+        throw AppError(
+          message: 'Failed to process card image. Please try again.',
+          type: ErrorType.capture,
+        );
+      }
+
+      return byteData.buffer.asUint8List();
+    } catch (e, stackTrace) {
+      if (e is AppError) rethrow;
+      throw AppError(
+        message: 'Failed to capture card image. Please try again.',
+        type: ErrorType.capture,
+        originalError: e,
+        stackTrace: stackTrace,
+      );
     }
   }
 
-  Future<File> _saveImageToTemp(Uint8List? bytes, String fileName) async {
-    if (bytes == null) throw 'Failed to capture card image';
-
-    final tempDir = await getTemporaryDirectory();
-    final file = File('${tempDir.path}/$fileName');
-    await file.writeAsBytes(bytes);
-    return file;
+  Future<File> _saveImageToTemp(Uint8List bytes, String fileName) async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/$fileName');
+      await file.writeAsBytes(bytes);
+      return file;
+    } catch (e, stackTrace) {
+      throw AppError(
+        message: 'Failed to save card image. Please check storage permissions.',
+        type: ErrorType.storage,
+        originalError: e,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   Future<void> _launchUrl(String url) async {
