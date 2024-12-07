@@ -82,7 +82,7 @@ class _CardTemplatesScreenState extends State<CardTemplatesScreen> with SingleTi
             elevation: 0,
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -156,7 +156,7 @@ class _CardTemplatesScreenState extends State<CardTemplatesScreen> with SingleTi
                       color: AppColors.secondary.withOpacity(0.5),
                     ),
                     const SizedBox(height: 16),
-                    Text(
+                    const Text(
                       'No templates available',
                       style: TextStyle(
                         fontSize: 20,
@@ -268,7 +268,7 @@ class _CardTemplatesScreenState extends State<CardTemplatesScreen> with SingleTi
                           errorBuilder: (context, error, stackTrace) {
                             return Container(
                               color: AppColors.secondary.withOpacity(0.1),
-                              child: Icon(
+                              child: const Icon(
                                 Icons.image_not_supported_outlined,
                                 size: 32,
                                 color: AppColors.secondary,

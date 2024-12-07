@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
+import '../utils/error_handler.dart';
 
 enum CardAnalyticEvent {
   scan,
@@ -96,9 +97,14 @@ class AnalyticsService {
   }) async {
     try {
       final ownerId = await _getCardOwnerId(cardId);
-      if (ownerId == null) return;
+      if (ownerId == null) {
+        throw AppError(
+          message: 'Card not found',
+          type: ErrorType.analytics,
+        );
+      }
 
-      final data = {
+      await _supabase.from('card_analytics').insert({
         'card_id': cardId,
         'owner_id': ownerId,
         'scanner_user_id': scannerId ?? _supabase.auth.currentUser?.id,
@@ -107,17 +113,17 @@ class AnalyticsService {
           'type': metadata?['device_type'] ?? 'web',
           'platform': metadata?['platform'] ?? 'web',
         },
-        'location': null,
         'scan_source': metadata?['source'] ?? 'direct',
         'created_at': DateTime.now().toIso8601String(),
-      };
-
-      debugPrint('Recording analytics event: $data');
-      await _supabase.from('card_analytics').insert(data);
-      debugPrint('Analytics event recorded successfully');
-    } catch (e) {
-      debugPrint('Error tracking analytics event: $e');
-      rethrow;
+      });
+    } catch (e, stackTrace) {
+      if (e is AppError) rethrow;
+      throw AppError(
+        message: 'Failed to track analytics event',
+        type: ErrorType.analytics,
+        originalError: e,
+        stackTrace: stackTrace,
+      );
     }
   }
 

@@ -103,14 +103,14 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                           ),
                         ],
                       ),
-                      child: Icon(
+                      child: const Icon(
                         Icons.contact_page,
                         size: 60,
                         color: AppColors.secondary,
                       ),
                     ),
                     const SizedBox(height: 24),
-                    Text(
+                    const Text(
                       'Card Fusion',
                       style: TextStyle(
                         fontSize: 32,

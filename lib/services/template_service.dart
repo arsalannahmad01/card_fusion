@@ -1,7 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/card_template_model.dart';
 import '../models/template_element_model.dart';
-import '../models/card_model.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 
 class TemplateService {

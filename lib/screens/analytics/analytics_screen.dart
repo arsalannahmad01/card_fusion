@@ -22,7 +22,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   final _analyticsService = AnalyticsService();
   bool _isLoading = true;
   List<DigitalCard> _myCards = [];
-  Map<String, CardAnalytics?> _analytics = {};
+  final Map<String, CardAnalytics?> _analytics = {};
   DigitalCard? _selectedCard;
 
   @override
@@ -149,7 +149,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         color: AppColors.secondary.withOpacity(0.5),
                       ),
                       const SizedBox(height: 16),
-                      Text(
+                      const Text(
                         'No cards available',
                         style: TextStyle(
                           fontSize: 18,
@@ -165,7 +165,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     _buildCardSelector(),
                     Expanded(
                       child: _selectedCard == null
-                          ? Center(
+                          ? const Center(
                               child: Text(
                                 'Select a card to view analytics',
                                 style: TextStyle(
@@ -185,7 +185,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [

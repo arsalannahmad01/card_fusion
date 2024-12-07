@@ -8,8 +8,8 @@ import '../qr_scanner/qr_scanner_screen.dart';
 import '../analytics/analytics_screen.dart';
 import '../templates/card_templates_screen.dart';
 import '../../config/theme.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../auth/login_screen.dart';
+import '../../utils/error_handler.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -43,11 +43,6 @@ class _HomeScreenState extends State<HomeScreen>
   Future<void> _loadAllCards() async {
     setState(() => _isLoading = true);
     try {
-      final user = _authService.currentUser;
-      if (user == null) {
-        throw 'User not authenticated';
-      }
-
       final [cards, savedCards] = await Future.wait([
         _cardService.getCards(),
         _cardService.getSavedCards(),
@@ -60,13 +55,11 @@ class _HomeScreenState extends State<HomeScreen>
           _isLoading = false;
         });
       }
-    } catch (e) {
-      debugPrint('Error loading cards: $e');
+    } catch (e, stackTrace) {
+      final error = AppError.handleError(e, stackTrace);
       if (mounted) {
+        ErrorDisplay.showError(context, error);
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading cards: $e')),
-        );
       }
     }
   }
@@ -162,7 +155,7 @@ class _HomeScreenState extends State<HomeScreen>
                                     currentUser?.userMetadata?['name']?[0]
                                             .toUpperCase() ??
                                         'U',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       color: AppColors.primary,
                                       fontSize: 24,
                                       fontWeight: FontWeight.bold,
@@ -294,12 +287,12 @@ class _HomeScreenState extends State<HomeScreen>
                       RefreshIndicator(
                         onRefresh: _refreshCards,
                         child: _isLoading
-                            ? Center(
+                            ? const Center(
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const CircularProgressIndicator(),
-                                    const SizedBox(height: 16),
+                                    CircularProgressIndicator(),
+                                    SizedBox(height: 16),
                                     Text(
                                       'Loading your cards...',
                                       style: TextStyle(
@@ -325,12 +318,12 @@ class _HomeScreenState extends State<HomeScreen>
                       RefreshIndicator(
                         onRefresh: _refreshCards,
                         child: _isLoading
-                            ? Center(
+                            ? const Center(
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const CircularProgressIndicator(),
-                                    const SizedBox(height: 16),
+                                    CircularProgressIndicator(),
+                                    SizedBox(height: 16),
                                     Text(
                                       'Loading saved cards...',
                                       style: TextStyle(
@@ -356,7 +349,7 @@ class _HomeScreenState extends State<HomeScreen>
                                                 .withOpacity(0.5),
                                           ),
                                           const SizedBox(height: 16),
-                                          Text(
+                                          const Text(
                                             'No saved cards yet',
                                             style: TextStyle(
                                               color: AppColors.textSecondary,
@@ -387,7 +380,7 @@ class _HomeScreenState extends State<HomeScreen>
       ),
       floatingActionButton: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
+          gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
@@ -719,7 +712,7 @@ class _HomeScreenState extends State<HomeScreen>
                         if (card.jobTitle != null) ...[
                           Text(
                             card.jobTitle!,
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: AppColors.textSecondary,
                               fontSize: 14,
                             ),
@@ -859,7 +852,7 @@ class _HomeScreenState extends State<HomeScreen>
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
-          Text(
+          const Text(
             'Create your first digital card using the button below',
             style: TextStyle(
               fontSize: 16,

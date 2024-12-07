@@ -3,6 +3,8 @@ import '../../services/analytics_service.dart';
 import '../../models/card_model.dart';
 import '../../config/theme.dart';
 import 'analytics_charts.dart';
+import '../../utils/app_error.dart';
+import '../../utils/error_display.dart';
 
 class CardAnalyticsScreen extends StatefulWidget {
   final DigitalCard card;
@@ -26,20 +28,26 @@ class _CardAnalyticsScreenState extends State<CardAnalyticsScreen> {
 
   Future<void> _loadAnalytics() async {
     try {
+      setState(() => _isLoading = true);
       final analytics = await _analyticsService.getCardAnalytics(widget.card.id);
+      if (analytics == null) {
+        throw AppError(
+          message: 'Failed to load analytics data',
+          type: ErrorType.analytics
+        );
+      }
+      
       if (mounted) {
         setState(() {
           _analytics = analytics;
           _isLoading = false;
         });
       }
-    } catch (e) {
-      debugPrint('Error loading analytics: $e');
+    } catch (e, stackTrace) {
+      final error = AppError.handleError(e, stackTrace);
       if (mounted) {
+        ErrorDisplay.showError(context, error);
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading analytics: $e')),
-        );
       }
     }
   }
@@ -61,7 +69,7 @@ class _CardAnalyticsScreenState extends State<CardAnalyticsScreen> {
               color: AppColors.secondary.withOpacity(0.5),
             ),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'No analytics available',
               style: TextStyle(
                 fontSize: 18,
@@ -219,7 +227,7 @@ class _CardAnalyticsScreenState extends State<CardAnalyticsScreen> {
               color: AppColors.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(
+            child: const Icon(
               Icons.access_time,
               size: 32,
               color: AppColors.primary,
@@ -240,7 +248,7 @@ class _CardAnalyticsScreenState extends State<CardAnalyticsScreen> {
                 const SizedBox(height: 4),
                 Text(
                   _formatDate(_analytics!.lastInteraction),
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
                     color: AppColors.textSecondary,
                   ),
@@ -269,8 +277,8 @@ class _CardAnalyticsScreenState extends State<CardAnalyticsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
+          const Padding(
+            padding: EdgeInsets.all(16),
             child: Row(
               children: [
                 Icon(
@@ -278,7 +286,7 @@ class _CardAnalyticsScreenState extends State<CardAnalyticsScreen> {
                   color: AppColors.primary,
                   size: 24,
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Text(
                   'Recent Activity',
                   style: TextStyle(
@@ -305,8 +313,8 @@ class _CardAnalyticsScreenState extends State<CardAnalyticsScreen> {
 
               final activities = snapshot.data!;
               if (activities.isEmpty) {
-                return Padding(
-                  padding: const EdgeInsets.all(20),
+                return const Padding(
+                  padding: EdgeInsets.all(20),
                   child: Center(
                     child: Text(
                       'No recent activity',
@@ -346,7 +354,7 @@ class _CardAnalyticsScreenState extends State<CardAnalyticsScreen> {
                     ),
                     subtitle: Text(
                       _formatDate(DateTime.parse(activity['created_at'])),
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 12,
                       ),
@@ -363,7 +371,7 @@ class _CardAnalyticsScreenState extends State<CardAnalyticsScreen> {
                             ),
                             child: Text(
                               activity['scanner_email']!,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 color: AppColors.primary,
                                 fontSize: 12,
                               ),

@@ -1,6 +1,4 @@
-import 'package:flutter/material.dart';
 import 'card_model.dart' show CardType;
-import 'template_element_model.dart';
 
 enum TemplateType {
   modern,

@@ -24,7 +24,6 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
   late TextEditingController _websiteController;
   String? _profileImagePath;
   String? _logoPath;
-  final _picker = ImagePicker();
 
   @override
   void initState() {
@@ -319,20 +318,20 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
   }
 
   Widget _buildDesignSection() {
-    return Card(
+    return const Card(
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Card Design',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             // TODO: Add design customization options
           ],
         ),

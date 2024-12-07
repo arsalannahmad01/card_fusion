@@ -3,11 +3,12 @@ import 'package:qr_code_scanner/qr_code_scanner.dart';
 import 'dart:convert';
 import '../../services/scan_service.dart';
 import '../../services/card_service.dart';
-import '../card_viewer/card_viewer_screen.dart';
 import 'dart:io';
 import '../qr_scanner/scanned_card_preview_screen.dart';
 import '../../services/analytics_service.dart';
 import '../../config/theme.dart';
+import '../../utils/app_error.dart';
+import '../../utils/error_display.dart';
 
 class QRScannerScreen extends StatefulWidget {
   const QRScannerScreen({super.key});
@@ -131,7 +132,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                       width: 1,
                     ),
                   ),
-                  child: Row(
+                  child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
@@ -139,8 +140,8 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                         color: AppColors.secondary,
                         size: 24,
                       ),
-                      const SizedBox(width: 12),
-                      const Text(
+                      SizedBox(width: 12),
+                      Text(
                         'Align QR code within frame',
                         style: TextStyle(
                           color: Colors.white,
@@ -197,11 +198,13 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   Future<void> _processQRCode(String data) async {
     try {
       setState(() => _isProcessing = true);
-      await controller?.pauseCamera();
-
+      
       final qrData = jsonDecode(data);
       if (qrData['type'] != 'digital_card' || qrData['id'] == null) {
-        throw 'Invalid QR code';
+        throw AppError(
+          message: 'Invalid QR code format',
+          type: ErrorType.scan
+        );
       }
 
       await _scanService.recordScan(
@@ -239,17 +242,15 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
           source: 'qr_scan',
         ),
       );
-    } catch (e) {
-      debugPrint('Error processing QR code: $e');
+    } catch (e, stackTrace) {
+      final error = AppError.handleError(e, stackTrace);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
-        await controller?.resumeCamera();
+        ErrorDisplay.showError(context, error);
       }
     } finally {
       if (mounted) {
         setState(() => _isProcessing = false);
+        await controller?.resumeCamera();
       }
     }
   }

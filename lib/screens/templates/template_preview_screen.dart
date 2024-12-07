@@ -4,11 +4,8 @@ import '../../models/card_model.dart';
 import '../../models/card_template_model.dart';
 import '../../widgets/card_template_widget.dart';
 import '../../config/theme.dart';
-import 'dart:ui' as ui;
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
-import 'dart:typed_data' show Uint8List;
+import '../../utils/error_display.dart';
+import '../../utils/app_error.dart';
 import '../../services/template_service.dart';
 
 class TemplatePreviewScreen extends StatefulWidget {
@@ -26,6 +23,7 @@ class TemplatePreviewScreen extends StatefulWidget {
 }
 
 class _TemplatePreviewScreenState extends State<TemplatePreviewScreen> with SingleTickerProviderStateMixin {
+  final _templateService = TemplateService();
   bool _showFront = true;
   bool _isApplying = false;
   final GlobalKey _cardKey = GlobalKey();
@@ -68,7 +66,7 @@ class _TemplatePreviewScreenState extends State<TemplatePreviewScreen> with Sing
             elevation: 0,
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -119,7 +117,7 @@ class _TemplatePreviewScreenState extends State<TemplatePreviewScreen> with Sing
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
+                        const Text(
                           'Preview Mode',
                           style: TextStyle(
                             fontSize: 16,
@@ -165,7 +163,7 @@ class _TemplatePreviewScreenState extends State<TemplatePreviewScreen> with Sing
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        const Text(
                           'Template Details',
                           style: TextStyle(
                             fontSize: 18,
@@ -226,7 +224,7 @@ class _TemplatePreviewScreenState extends State<TemplatePreviewScreen> with Sing
               const SizedBox(width: 16),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: _isApplying ? null : () => Navigator.pop(context, true),
+                  onPressed: _isApplying ? null : () => _applyTemplate(),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
@@ -275,7 +273,7 @@ class _TemplatePreviewScreenState extends State<TemplatePreviewScreen> with Sing
           children: [
             Text(
               label,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 14,
                 color: AppColors.textSecondary,
               ),
@@ -307,6 +305,23 @@ class _TemplatePreviewScreenState extends State<TemplatePreviewScreen> with Sing
         return Icons.diamond_outlined;
       case TemplateType.professional:
         return Icons.business_center;
+    }
+  }
+
+  Future<void> _applyTemplate() async {
+    try {
+      setState(() => _isApplying = true);
+      await _templateService.applyTemplate(widget.card.id, widget.template.id);
+      if (mounted) Navigator.pop(context, true);
+    } catch (e, stackTrace) {
+      final error = AppError.handleError(e, stackTrace);
+      if (mounted) {
+        ErrorDisplay.showError(context, error);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isApplying = false);
+      }
     }
   }
 } 
