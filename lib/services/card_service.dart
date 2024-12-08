@@ -265,11 +265,16 @@ class CardService {
   }
 
   Future<void> removeSavedCard(String cardId) async {
-    await _supabase
-        .from('saved_cards')
-        .delete()
-        .eq('card_id', cardId)
-        .eq('user_id', _supabase.auth.currentUser!.id);
+    try {
+      await _supabase
+          .from('saved_cards')
+          .delete()
+          .eq('card_id', cardId)
+          .eq('user_id', _supabase.auth.currentUser!.id);
+    } catch (e) {
+      debugPrint('Error removing saved card: $e');
+      rethrow;
+    }
   }
 
   Future<String?> getRandomCardForTesting() async {

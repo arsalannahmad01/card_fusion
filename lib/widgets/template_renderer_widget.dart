@@ -3,6 +3,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../models/card_model.dart';
 import '../models/card_template_model.dart';
 import '../config/theme.dart';
+import 'dart:convert';
 
 class TemplateRendererWidget extends StatelessWidget {
   final DigitalCard card;
@@ -134,21 +135,125 @@ class TemplateRendererWidget extends StatelessWidget {
   }
 
   Widget _buildBack() {
-    return Center(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
+    final qrData = {
+      'type': 'digital_card',
+      'id': card.id,
+      'name': card.name,
+    };
+
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        // color: Colors.white,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            _parseColor(template.styles['primaryColor']),
+            _parseColor(template.styles['secondaryColor']),
+          ],
         ),
-        child: QrImageView(
-          data: card.id,
-          version: QrVersions.auto,
-          size: 200,
-          backgroundColor: Colors.white,
-          foregroundColor: _parseColor(template.styles['primaryColor']),
-        ),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Watermark Layer
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: CustomPaint(
+              painter: WatermarkPainter(
+                text: 'Card Fusion',
+                color: _parseColor(template.styles['primaryColor'])
+                    .withOpacity(0.25),
+              ),
+            ),
+          ),
+          // QR Code Layer
+          Center(
+            child: Container(
+              width: 160,
+              height: 160,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.9),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _parseColor(template.styles['primaryColor'])
+                      .withOpacity(0.1),
+                  width: 1,
+                ),
+              ),
+              child: QrImageView(
+                data: jsonEncode(qrData),
+                version: QrVersions.auto,
+                backgroundColor: Colors.white,
+                foregroundColor: _parseColor(template.styles['primaryColor']),
+                eyeStyle: QrEyeStyle(
+                  eyeShape: QrEyeShape.circle,
+                  color: _parseColor(template.styles['primaryColor']),
+                ),
+                dataModuleStyle: QrDataModuleStyle(
+                  dataModuleShape: QrDataModuleShape.circle,
+                  color: _parseColor(template.styles['primaryColor']),
+                ),
+                padding: const EdgeInsets.all(8),
+                size: 120,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
-} 
+}
+
+class WatermarkPainter extends CustomPainter {
+  final String text;
+  final Color color;
+
+  WatermarkPainter({
+    required this.text,
+    required this.color,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+    textPainter.layout();
+
+    final double textWidth = textPainter.width;
+    final double textHeight = textPainter.height;
+    final double spacingMultiplier = 1.2;
+    final int rowCount = (size.height / (textHeight * spacingMultiplier)).ceil() + 2;
+    final int columnCount = (size.width / (textWidth * spacingMultiplier)).ceil() + 2;
+
+    for (int i = -1; i < rowCount; i++) {
+      for (int j = -1; j < columnCount; j++) {
+        final offset = Offset(
+          j * textWidth * spacingMultiplier,
+          i * textHeight * spacingMultiplier,
+        );
+        canvas.save();
+        canvas.translate(offset.dx, offset.dy);
+        canvas.rotate(-0.5);
+        textPainter.paint(canvas, Offset.zero);
+        canvas.restore();
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(WatermarkPainter oldDelegate) => false;
+}

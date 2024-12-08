@@ -361,14 +361,7 @@ class _HomeScreenState extends State<HomeScreen>
                                       ),
                                     ),
                                   )
-                                : ListView.builder(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 16),
-                                    itemCount: _savedCards.length,
-                                    itemBuilder: (context, index) =>
-                                        _buildCardItem(_savedCards[index],
-                                            isOwned: false),
-                                  ),
+                                : _buildSavedCardsList(),
                       ),
                     ],
                   ),
@@ -862,6 +855,78 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSavedCardsList() {
+    return ListView.builder(
+      itemCount: _savedCards.length,
+      padding: const EdgeInsets.all(16),
+      itemBuilder: (context, index) {
+        final card = _savedCards[index];
+        return Dismissible(
+          key: Key(card.id),
+          direction: DismissDirection.endToStart,
+          background: Container(
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 20),
+            color: Colors.red,
+            child: const Icon(
+              Icons.delete,
+              color: Colors.white,
+            ),
+          ),
+          confirmDismiss: (direction) async {
+            return await showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Remove Card'),
+                content: const Text('Are you sure you want to remove this saved card?'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text(
+                      'Remove',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+          onDismissed: (direction) async {
+            try {
+              final removedCard = _savedCards[index];
+              setState(() {
+                _savedCards.removeAt(index);
+              });
+              await _cardService.removeSavedCard(removedCard.id);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Card removed successfully'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              }
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Failed to remove card'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
+          },
+          child: _buildCardItem(card, isOwned: false),
+        );
+      },
     );
   }
 }
