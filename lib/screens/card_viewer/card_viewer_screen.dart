@@ -18,6 +18,7 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import '../../utils/error_handler.dart';
 import '../../services/template_service.dart';
+import '../analytics/activity_list_screen.dart';
 
 class CardViewerScreen extends StatefulWidget {
   final DigitalCard card;

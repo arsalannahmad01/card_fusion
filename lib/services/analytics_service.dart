@@ -203,15 +203,27 @@ class AnalyticsService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getDetailedAnalytics(String cardId) async {
+  Future<List<Map<String, dynamic>>> getDetailedAnalytics(
+    String cardId, {
+    int? limit,
+    int? offset,
+  }) async {
     try {
-      final response = await _supabase
+      var query = _supabase
           .from('card_analytics_details')
           .select()
           .eq('card_id', cardId)
-          .order('created_at', ascending: false)
-          .limit(50);
+          .order('created_at', ascending: false);
+
+      if (limit != null) {
+        query = query.limit(limit);
+      }
       
+      if (offset != null) {
+        query = query.range(offset, offset + (limit ?? 50) - 1);
+      }
+      
+      final response = await query;
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       debugPrint('Error getting detailed analytics: $e');

@@ -1,3 +1,4 @@
+import 'package:card_fusion/screens/analytics/activity_list_screen.dart';
 import 'package:flutter/material.dart';
 import '../../services/analytics_service.dart';
 import '../../models/card_model.dart';
@@ -29,14 +30,14 @@ class _CardAnalyticsScreenState extends State<CardAnalyticsScreen> {
   Future<void> _loadAnalytics() async {
     try {
       setState(() => _isLoading = true);
-      final analytics = await _analyticsService.getCardAnalytics(widget.card.id);
+      final analytics =
+          await _analyticsService.getCardAnalytics(widget.card.id);
       if (analytics == null) {
         throw AppError(
-          message: 'Failed to load analytics data',
-          type: ErrorType.analytics
-        );
+            message: 'Failed to load analytics data',
+            type: ErrorType.analytics);
       }
-      
+
       if (mounted) {
         setState(() {
           _analytics = analytics;
@@ -57,7 +58,7 @@ class _CardAnalyticsScreenState extends State<CardAnalyticsScreen> {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
-    
+
     if (_analytics == null) {
       return Center(
         child: Column(
@@ -85,7 +86,8 @@ class _CardAnalyticsScreenState extends State<CardAnalyticsScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
@@ -158,7 +160,8 @@ class _CardAnalyticsScreenState extends State<CardAnalyticsScreen> {
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+      String title, String value, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -277,22 +280,44 @@ class _CardAnalyticsScreenState extends State<CardAnalyticsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.all(16),
+          Padding(
+            padding: const EdgeInsets.all(16),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Icon(
-                  Icons.history,
-                  color: AppColors.primary,
-                  size: 24,
+                const Row(
+                  children: [
+                    Icon(
+                      Icons.history,
+                      color: AppColors.primary,
+                      size: 24,
+                    ),
+                    SizedBox(width: 12),
+                    Text(
+                      'Recent Activity',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
                 ),
-                SizedBox(width: 12),
-                Text(
-                  'Recent Activity',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ActivityListScreen(card: widget.card),
+                      ),
+                    );
+                  },
+                  child: Text(
+                    'See All',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
@@ -300,7 +325,8 @@ class _CardAnalyticsScreenState extends State<CardAnalyticsScreen> {
           ),
           const Divider(height: 1),
           FutureBuilder<List<Map<String, dynamic>>>(
-            future: _analyticsService.getDetailedAnalytics(widget.card.id),
+            future: _analyticsService.getDetailedAnalytics(widget.card.id,
+                limit: 5),
             builder: (context, snapshot) {
               if (!snapshot.hasData) {
                 return const Padding(
@@ -338,7 +364,8 @@ class _CardAnalyticsScreenState extends State<CardAnalyticsScreen> {
                     leading: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: _getEventColor(activity['event_type']).withOpacity(0.1),
+                        color: _getEventColor(activity['event_type'])
+                            .withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(
@@ -430,7 +457,7 @@ class _CardAnalyticsScreenState extends State<CardAnalyticsScreen> {
     final eventType = activity['event_type'];
     final deviceInfo = activity['device_info'] as Map?;
     final platform = deviceInfo?['platform'] ?? 'Unknown';
-    
+
     switch (eventType) {
       case 'scan':
         return 'Scanned from $platform';
@@ -444,4 +471,33 @@ class _CardAnalyticsScreenState extends State<CardAnalyticsScreen> {
         return 'Unknown activity';
     }
   }
-} 
+
+  Widget _buildActivityItem(Map<String, dynamic> activity) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: _getEventColor(activity['event_type']).withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          _getEventIcon(activity['event_type']),
+          color: _getEventColor(activity['event_type']),
+        ),
+      ),
+      title: Text(
+        _getEventTitle(activity),
+        style: const TextStyle(fontWeight: FontWeight.w500),
+      ),
+      subtitle: Text(
+        _formatDate(DateTime.parse(activity['created_at'])),
+        style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+      ),
+      trailing: activity['scanner_email'] != null
+          ? Text(activity['scanner_email'],
+              style: const TextStyle(fontSize: 12))
+          : const Text('Anonymous',
+              style: TextStyle(fontSize: 12, color: Colors.grey)),
+    );
+  }
+}
