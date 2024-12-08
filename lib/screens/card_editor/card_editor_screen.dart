@@ -96,10 +96,8 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
       setState(() {
         if (isProfile) {
           _profileImagePath = image.path;
-          debugPrint('Set profile image: $_profileImagePath');
         } else {
           _logoPath = image.path;
-          debugPrint('Set logo image: $_logoPath');
         }
       });
     }

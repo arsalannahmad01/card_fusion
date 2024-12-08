@@ -1,70 +1,83 @@
 import 'package:flutter/material.dart';
 import '../../models/card_model.dart';
 import '../../models/card_template_model.dart';
-import 'template_preview_screen.dart';
 import '../../services/card_service.dart';
 import '../../services/template_service.dart';
 import '../../config/theme.dart';
+import '../../widgets/template_renderer_widget.dart';
+import '../../utils/error_display.dart';
+import '../../utils/app_error.dart';
+import 'dart:math' show pi;
 
 class CardTemplatesScreen extends StatefulWidget {
   final DigitalCard card;
-
   const CardTemplatesScreen({super.key, required this.card});
 
   @override
   State<CardTemplatesScreen> createState() => _CardTemplatesScreenState();
 }
 
-class _CardTemplatesScreenState extends State<CardTemplatesScreen> with SingleTickerProviderStateMixin {
-  final _cardService = CardService();
+class _CardTemplatesScreenState extends State<CardTemplatesScreen> with TickerProviderStateMixin {
   final _templateService = TemplateService();
+  final _cardService = CardService();
   late DigitalCard _selectedCard;
+  List<DigitalCard> _userCards = [];
   List<CardTemplate> _templates = [];
   bool _isLoading = true;
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
+  Map<String, AnimationController> _flipControllers = {};
+  Set<String> _flippedCards = {};
 
   @override
   void initState() {
     super.initState();
     _selectedCard = widget.card;
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: Curves.easeOut,
-      ),
-    );
-    _loadTemplates();
+    _userCards = [_selectedCard];
+    _loadData();
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
+    for (var controller in _flipControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
-  Future<void> _loadTemplates() async {
+  Future<void> _loadData() async {
     try {
       final templates = await _templateService.getTemplates();
-      if (mounted) {
-        setState(() {
-          _templates = templates;
-          _isLoading = false;
-        });
-        _animationController.forward();
-      }
-    } catch (e) {
-      debugPrint('Error loading templates: $e');
-      if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading templates: $e')),
+      
+      for (var template in templates) {
+        _flipControllers[template.id] = AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: 500),
         );
       }
+
+      setState(() {
+        _templates = templates;
+        _isLoading = false;
+      });
+
+      _loadUserCards();
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ErrorDisplay.showError(context, AppError.handleError(e));
+      }
+    }
+  }
+
+  Future<void> _loadUserCards() async {
+    try {
+      final cards = await _cardService.getUserCards();
+      if (mounted) {
+        setState(() {
+          _userCards = [_selectedCard, ...cards.where((c) => c.id != _selectedCard.id)];
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading user cards: $e');
     }
   }
 
@@ -72,306 +85,236 @@ class _CardTemplatesScreenState extends State<CardTemplatesScreen> with SingleTi
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 180,
-            floating: true,
-            pinned: true,
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      AppColors.primary,
-                      AppColors.secondary,
-                    ],
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    Positioned(
-                      right: -50,
-                      top: -50,
-                      child: Container(
-                        width: 200,
-                        height: 200,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      left: -30,
-                      bottom: -30,
-                      child: Container(
-                        width: 140,
-                        height: 140,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              title: const Text(
-                'Choose Template',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              centerTitle: true,
-            ),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-              onPressed: () => Navigator.pop(context),
+      appBar: AppBar(
+        title: const Text('Choose Template'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [AppColors.primary, AppColors.secondary],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
           ),
-          if (_isLoading)
-            const SliverFillRemaining(
-              child: Center(
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+        ),
+      ),
+      body: Column(
+        children: [
+          // Card Selector
+          Container(
+            margin: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(30),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  spreadRadius: 0,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Theme(
+              data: Theme.of(context).copyWith(
+                inputDecorationTheme: InputDecorationTheme(
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
               ),
-            )
-          else if (_templates.isEmpty)
-            SliverFillRemaining(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.style_outlined,
-                      size: 80,
-                      color: AppColors.secondary.withOpacity(0.5),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'No templates available',
-                      style: TextStyle(
-                        fontSize: 20,
-                        color: AppColors.textSecondary,
+              child: DropdownButtonFormField<String>(
+                value: _selectedCard.id,
+                icon: const Icon(Icons.keyboard_arrow_down),
+                decoration: InputDecoration(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87,
+                ),
+                items: _userCards.map((card) {
+                  return DropdownMenuItem(
+                    value: card.id,
+                    child: Text(
+                      '${card.name} (${card.type.name})',
+                      style: const TextStyle(
+                        fontSize: 16,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    ElevatedButton.icon(
-                      onPressed: _loadTemplates,
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Retry'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          else
-            SliverPadding(
-              padding: const EdgeInsets.all(16),
-              sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 0.75,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                ),
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final template = _templates[index];
-                    return FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: _buildTemplateCard(context, template),
-                    );
-                  },
-                  childCount: _templates.length,
-                ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _selectedCard = _userCards.firstWhere((c) => c.id == value);
+                    });
+                  }
+                },
               ),
             ),
+          ),
+          // Templates List
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _templates.length,
+                    itemBuilder: (context, index) => _buildTemplateCard(_templates[index]),
+                  ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildTemplateCard(BuildContext context, CardTemplate template) {
-    final isSupported = template.supportsCardType(_selectedCard.type);
+  Widget _buildTemplateCard(CardTemplate template) {
+    final controller = _flipControllers[template.id];
+    if (controller == null) return const SizedBox();
+    final isFlipped = _flippedCards.contains(template.id);
+    final isCurrentTemplate = _selectedCard.template_id == template.id;
 
-    return Hero(
-      tag: 'template_${template.id}',
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.1),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: InkWell(
-              onTap: isSupported
-                  ? () async {
-                      final result = await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => TemplatePreviewScreen(
-                            card: _selectedCard,
-                            template: template,
-                          ),
-                        ),
-                      );
-                      if (result == true && mounted) {
-                        await _templateService.applyTemplate(_selectedCard.id, template.id);
-                        final updatedCard = await _cardService.getCardById(_selectedCard.id);
-                        if (updatedCard != null && mounted) {
-                          Navigator.pop(context, updatedCard);
-                        }
-                      }
-                    }
-                  : null,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Image.network(
-                          template.previewImage,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              color: AppColors.secondary.withOpacity(0.1),
-                              child: const Icon(
-                                Icons.image_not_supported_outlined,
-                                size: 32,
-                                color: AppColors.secondary,
-                              ),
-                            );
-                          },
-                        ),
-                        if (!isSupported)
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.7),
-                              borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(16),
-                              ),
-                            ),
-                            child: Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.block,
-                                    color: Colors.white.withOpacity(0.8),
-                                    size: 32,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  const Text(
-                                    'Not Available',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                      ],
+        ],
+      ),
+      child: Stack(
+        children: [
+          // Template Preview
+          GestureDetector(
+            onTap: () => _toggleCard(template.id),
+            child: AnimatedBuilder(
+              animation: controller,
+              builder: (context, child) {
+                return Transform(
+                  transform: Matrix4.identity()
+                    ..setEntry(3, 2, 0.001)
+                    ..rotateY(controller.value * pi),
+                  alignment: Alignment.center,
+                  child: AspectRatio(
+                    aspectRatio: 1.75,
+                    child: TemplateRendererWidget(
+                      card: _selectedCard,
+                      template: template,
+                      showFront: !isFlipped,
                     ),
                   ),
-                  Expanded(
-                    flex: 2,
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            template.name,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _getTypeColor(template.type).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              template.type.name.toUpperCase(),
-                              style: TextStyle(
-                                color: _getTypeColor(template.type),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                );
+              },
             ),
           ),
-        ),
+          // Apply Button or Applied Label
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: isCurrentTemplate
+                ? Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      'Applied',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  )
+                : ElevatedButton(
+                    onPressed: () => _applyTemplate(template),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                    child: const Text('Apply'),
+                  ),
+          ),
+        ],
       ),
     );
   }
 
-  Color _getTypeColor(TemplateType type) {
-    switch (type) {
-      case TemplateType.modern:
-        return AppColors.primary;
-      case TemplateType.classic:
-        return Colors.brown;
-      case TemplateType.minimal:
-        return Colors.blueGrey;
-      case TemplateType.bold:
-        return Colors.purple;
-      case TemplateType.elegant:
-        return Colors.indigo;
-      case TemplateType.professional:
-        return Colors.teal;
+  void _toggleCard(String templateId) {
+    final controller = _flipControllers[templateId];
+    if (controller == null || controller.isAnimating) return;
+
+    setState(() {
+      if (_flippedCards.contains(templateId)) {
+        _flippedCards.remove(templateId);
+        controller.reverse();
+      } else {
+        _flippedCards.add(templateId);
+        controller.forward();
+      }
+    },);
+  }
+
+  Future<void> _applyTemplate(CardTemplate template) async {
+    try {
+      setState(() => _isLoading = true);
+      
+      // Apply the template and get updated card
+      final updatedCard = await _templateService.applyTemplate(_selectedCard.id, template.id);
+      
+      if (mounted) {
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Template applied successfully'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+        
+        // Return the updated card to the previous screen
+        Navigator.pop(context, updatedCard);
+      }
+    } catch (e) {
+      if (mounted) {
+        ErrorDisplay.showError(context, AppError.handleError(e));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 } 

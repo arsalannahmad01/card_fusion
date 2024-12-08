@@ -216,38 +216,26 @@ class CardService {
   Future<List<DigitalCard>> getSavedCards() async {
     try {
       final response = await _supabase
-          .from('saved_cards')
-          .select('card_id')
-          .eq('user_id', _supabase.auth.currentUser!.id);
-
-      final cardIds =
-          (response as List).map((r) => r['card_id'] as String).toList();
-
-      if (cardIds.isEmpty) return [];
-
-      final cards = await _supabase
           .from('digital_cards')
           .select('''
             *,
-            template:templates(
+            templates:template_id (
               id,
               name,
               type,
-              supported_card_types,
+              front_markup,
+              back_markup,
               styles,
-              preview_image,
-              front_layout,
-              back_layout,
-              created_at,
-              updated_at
+              supported_card_types,
+              preview_image
             )
           ''')
-          .in_('id', cardIds);
+          .order('created_at');
 
-      return (cards as List).map((json) => DigitalCard.fromJson(json)).toList();
+      return (response as List).map((json) => DigitalCard.fromJson(json)).toList();
     } catch (e) {
       debugPrint('Error fetching saved cards: $e');
-      return [];
+      rethrow;
     }
   }
 
@@ -301,6 +289,32 @@ class CardService {
     } catch (e) {
       debugPrint('Error getting random card: $e');
       return null;
+    }
+  }
+
+  Future<List<DigitalCard>> getUserCards() async {
+    try {
+      final response = await _supabase
+          .from('digital_cards')
+          .select('''
+            *,
+            templates:template_id (
+              id,
+              name,
+              type,
+              front_markup,
+              back_markup,
+              styles,
+              supported_card_types
+            )
+          ''')
+          .eq('user_id', _supabase.auth.currentUser!.id)
+          .order('created_at');
+
+      return (response as List).map((json) => DigitalCard.fromJson(json)).toList();
+    } catch (e) {
+      debugPrint('Error fetching user cards: $e');
+      rethrow;
     }
   }
 }

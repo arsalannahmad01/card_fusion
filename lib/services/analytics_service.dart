@@ -143,13 +143,11 @@ class AnalyticsService {
 
   Future<CardAnalytics?> getCardAnalytics(String cardId) async {
     try {
-      debugPrint('Fetching analytics for card: $cardId');
       final response = await _supabase
           .from('card_analytics_summary')
           .select()
           .eq('card_id', cardId)
           .single();
-      debugPrint('Analytics response: $response');
       return CardAnalytics.fromJson(response);
     } catch (e) {
       debugPrint('Error getting card analytics: $e');
@@ -181,7 +179,6 @@ class AnalyticsService {
   }) async {
     try {
       final ownerId = await _getCardOwnerId(cardId);
-      debugPrint('Recording scan - Card ID: $cardId, Owner ID: $ownerId');
       if (ownerId == null) return;
 
       final data = {
@@ -197,7 +194,6 @@ class AnalyticsService {
         'scan_source': details.source,
         'created_at': DateTime.now().toIso8601String(),
       };
-      debugPrint('Analytics data to insert: $data');
 
       await _supabase.from('card_analytics').insert(data);
       debugPrint('Analytics recorded successfully');
@@ -209,7 +205,6 @@ class AnalyticsService {
 
   Future<List<Map<String, dynamic>>> getDetailedAnalytics(String cardId) async {
     try {
-      debugPrint('Fetching detailed analytics for card: $cardId');
       final response = await _supabase
           .from('card_analytics_details')
           .select()
@@ -217,7 +212,6 @@ class AnalyticsService {
           .order('created_at', ascending: false)
           .limit(50);
       
-      debugPrint('Detailed analytics response: $response');
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       debugPrint('Error getting detailed analytics: $e');

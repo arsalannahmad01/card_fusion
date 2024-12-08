@@ -11,7 +11,7 @@ class DigitalCard {
   final String? website;
   final CardType type;
   final Map<String, String>? socialLinks;
-  final CardTemplate? template;
+  final String? template_id;
   final String? jobTitle;
   final String? companyName;
   final String? businessType;
@@ -34,7 +34,7 @@ class DigitalCard {
     this.website,
     required this.type,
     this.socialLinks,
-    this.template,
+    this.template_id,
     this.jobTitle,
     this.companyName,
     this.businessType,
@@ -65,7 +65,7 @@ class DigitalCard {
       website: json['website'],
       type: CardType.values.byName(json['type']),
       socialLinks: Map<String, String>.from(json['social_links'] ?? {}),
-      template: template,
+      template_id: json['template_id'],
       jobTitle: json['job_title'],
       companyName: json['company_name'],
       businessType: json['business_type'],
@@ -91,7 +91,7 @@ class DigitalCard {
       'website': website,
       'type': type.name,
       'social_links': socialLinks,
-      'template_id': template?.id,
+      'template_id': template_id,
       'job_title': jobTitle,
       'company_name': companyName,
       'business_type': businessType,
@@ -108,46 +108,34 @@ class DigitalCard {
   }
 
   DigitalCard copyWith({
+    String? id,
+    String? userId,
     String? name,
     String? email,
-    String? phone,
-    String? website,
     CardType? type,
     Map<String, String>? socialLinks,
     CardTemplate? template,
     String? jobTitle,
     String? companyName,
     String? businessType,
-    int? yearFounded,
-    String? userImageUrl,
-    String? logoUrl,
-    int? employeeCount,
-    String? headquarters,
-    String? registrationNumber,
-    int? age,
+    String? phone,
+    String? website,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
     return DigitalCard(
-      id: id,
-      userId: userId,
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
       name: name ?? this.name,
       email: email ?? this.email,
-      phone: phone ?? this.phone,
-      website: website ?? this.website,
       type: type ?? this.type,
       socialLinks: socialLinks ?? this.socialLinks,
-      template: template ?? this.template,
+      template_id: template_id ?? this.template_id,
       jobTitle: jobTitle ?? this.jobTitle,
       companyName: companyName ?? this.companyName,
       businessType: businessType ?? this.businessType,
-      yearFounded: yearFounded ?? this.yearFounded,
-      userImageUrl: userImageUrl ?? this.userImageUrl,
-      logoUrl: logoUrl ?? this.logoUrl,
-      employeeCount: employeeCount ?? this.employeeCount,
-      headquarters: headquarters ?? this.headquarters,
-      registrationNumber: registrationNumber ?? this.registrationNumber,
-      age: age ?? this.age,
+      phone: phone ?? this.phone,
+      website: website ?? this.website,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
