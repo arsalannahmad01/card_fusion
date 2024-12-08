@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'dart:typed_data';
 import '../../models/card_model.dart';
+import '../../models/card_template_model.dart';
 import '../../services/supabase_service.dart';
 import '../../services/analytics_service.dart';
 import '../../config/theme.dart';
-import '../../widgets/card_template_widget.dart';
+import '../../widgets/template_renderer_widget.dart';
 import '../templates/card_templates_screen.dart';
 import '../analytics/analytics_screen.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -16,6 +17,8 @@ import 'dart:ui' as ui;
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import '../../utils/error_handler.dart';
+import '../../services/template_service.dart';
+import '../analytics/activity_list_screen.dart';
 
 class CardViewerScreen extends StatefulWidget {
   final DigitalCard card;
@@ -40,14 +43,21 @@ class _CardViewerScreenState extends State<CardViewerScreen>
   final _authService = SupabaseService();
   final _analyticsService = AnalyticsService();
   final GlobalKey _cardKey = GlobalKey();
-  
+
+  late DigitalCard _selectedCard;
+
   // Pre-build both sides
   Widget? _frontSide;
   Widget? _backSide;
 
+  final _templateService = TemplateService();
+
+  bool _isInitialized = false;
+
   @override
   void initState() {
     super.initState();
+    _selectedCard = widget.card;
     _flipController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
@@ -60,37 +70,54 @@ class _CardViewerScreenState extends State<CardViewerScreen>
       ),
     );
 
+    // Initialize card sides
+    _loadTemplate();
     _trackCardView();
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _initializeCardSides();
+  Future<void> _loadTemplate() async {
+    if (_selectedCard.template_id != null) {
+      final template = await _templateService.getTemplateById(_selectedCard.template_id!);
+      if (template != null && mounted) {
+        _buildSides(template);
+      }
+    } else {
+      _buildSides(_getDefaultTemplate());
+    }
   }
 
-  void _initializeCardSides() {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final cardWidth = screenWidth - 32;
-    final cardHeight = cardWidth / 1.75;
-
-    _frontSide = CardTemplateWidget(
-      key: const ValueKey('front'),
-      card: widget.card,
-      styles: widget.card.template?.styles ?? {},
-      showFront: true,
-      width: cardWidth,
-      height: cardHeight,
+  CardTemplate _getDefaultTemplate() {
+    return CardTemplate(
+      id: 'default',
+      name: 'Default',
+      type: 'modern',
+      frontMarkup: '',
+      backMarkup: '',
+      styles: {
+        'primaryColor': '#1E3D59',
+        'secondaryColor': '#17B794',
+      },
+      supportedCardTypes: [_selectedCard.type.name],
     );
+  }
 
-    _backSide = CardTemplateWidget(
-      key: const ValueKey('back'),
-      card: widget.card,
-      styles: widget.card.template?.styles ?? {},
-      showFront: false,
-      width: cardWidth,
-      height: cardHeight,
-    );
+  void _buildSides(CardTemplate template) {
+    setState(() {
+      _frontSide = TemplateRendererWidget(
+        key: const ValueKey('front'),
+        card: _selectedCard,
+        template: template,
+        showFront: true,
+      );
+
+      _backSide = TemplateRendererWidget(
+        key: const ValueKey('back'),
+        card: _selectedCard,
+        template: template,
+        showFront: false,
+      );
+      _isInitialized = true;
+    });
   }
 
   Future<void> _trackCardView() async {
@@ -123,7 +150,7 @@ class _CardViewerScreenState extends State<CardViewerScreen>
 
   void _toggleCard() {
     if (_flipController.isAnimating) return;
-    
+
     if (_isFrontVisible) {
       _flipController.forward().then((_) {
         if (mounted) {
@@ -141,6 +168,9 @@ class _CardViewerScreenState extends State<CardViewerScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (!_isInitialized) {
+      return const Center(child: CircularProgressIndicator());
+    }
     final currentUserId = _authService.currentUser?.id;
     final isOwner = widget.card.userId == currentUserId;
 
@@ -250,7 +280,7 @@ class _CardViewerScreenState extends State<CardViewerScreen>
 
   Widget _buildCardPreview() {
     if (_frontSide == null || _backSide == null) {
-      _initializeCardSides();
+      _loadTemplate();
     }
 
     final screenWidth = MediaQuery.of(context).size.width;
@@ -271,7 +301,7 @@ class _CardViewerScreenState extends State<CardViewerScreen>
                 animation: _flipAnimation,
                 builder: (context, child) {
                   final angle = _flipAnimation.value * pi;
-                  
+
                   return Stack(
                     children: [
                       // Front side
@@ -280,7 +310,9 @@ class _CardViewerScreenState extends State<CardViewerScreen>
                           ..setEntry(3, 2, 0.002)
                           ..rotateY(angle),
                         alignment: Alignment.center,
-                        child: _flipAnimation.value <= 0.5 ? _frontSide! : const SizedBox.shrink(),
+                        child: _flipAnimation.value <= 0.5
+                            ? _frontSide!
+                            : const SizedBox.shrink(),
                       ),
                       // Back side
                       Transform(
@@ -288,7 +320,9 @@ class _CardViewerScreenState extends State<CardViewerScreen>
                           ..setEntry(3, 2, 0.002)
                           ..rotateY(angle - pi),
                         alignment: Alignment.center,
-                        child: _flipAnimation.value > 0.5 ? _backSide! : const SizedBox.shrink(),
+                        child: _flipAnimation.value > 0.5
+                            ? _backSide!
+                            : const SizedBox.shrink(),
                       ),
                     ],
                   );
@@ -356,12 +390,20 @@ class _CardViewerScreenState extends State<CardViewerScreen>
                   child: _buildActionButton(
                     icon: Icons.style,
                     label: 'Templates',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => CardTemplatesScreen(card: widget.card),
-                      ),
-                    ),
+                    onTap: () async {
+                      final updatedCard = await Navigator.push<DigitalCard>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CardTemplatesScreen(
+                            card: _selectedCard ?? widget.card,
+                          ),
+                        ),
+                      );
+
+                      if (updatedCard != null && mounted) {
+                        _updateCard(updatedCard);
+                      }
+                    },
                   ),
                 ),
               ],
@@ -906,7 +948,7 @@ class _CardViewerScreenState extends State<CardViewerScreen>
 
       // For Android, we need to ensure proper file paths and MIME types
       final List<String> filePaths = [frontFile.path, backFile.path];
-      
+
       final shareText = '''${widget.card.name}'s Digital Card
       
 ${widget.card.type.name.toUpperCase()}
@@ -953,8 +995,9 @@ ${widget.card.website ?? ''}''';
   Future<Uint8List?> _captureCard(GlobalKey key) async {
     try {
       await Future.delayed(const Duration(milliseconds: 100));
-      
-      final boundary = key.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+
+      final boundary =
+          key.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) {
         throw AppError(
           message: 'Failed to find card boundary. Please try again.',
@@ -1001,15 +1044,53 @@ ${widget.card.website ?? ''}''';
   }
 
   Future<void> _launchUrl(String url) async {
-    if (await canLaunchUrl(Uri.parse(url))) {
-      await launchUrl(Uri.parse(url));
-    } else {
+    try {
+      Uri? uri;
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        uri = Uri.parse(url);
+      } else if (url.startsWith('tel:')) {
+        uri = Uri.parse(url);
+      } else if (url.startsWith('mailto:')) {
+        uri = Uri.parse(url);
+      } else if (url.contains('@')) {
+        uri = Uri.parse('mailto:$url');
+      } else if (url.startsWith(RegExp(r'[\d+]'))) {
+        uri = Uri.parse('tel:$url');
+      } else {
+        uri = Uri.parse('https://$url');
+      }
+
+      if (!await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+        webViewConfiguration: const WebViewConfiguration(
+          enableJavaScript: true,
+          enableDomStorage: true,
+        ),
+      )) {
+        if (mounted) {
+          ErrorDisplay.showError(
+            context,
+            AppError(
+              message: 'Could not launch: $url',
+              type: ErrorType.unknown,
+            ),
+          );
+        }
+      }
+    } catch (e, stackTrace) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not launch URL')),
-        );
+        final error = AppError.handleError(e, stackTrace);
+        ErrorDisplay.showError(context, error);
       }
     }
+  }
+
+  void _updateCard(DigitalCard updatedCard) {
+    setState(() {
+      _selectedCard = updatedCard;
+      _loadTemplate();
+    });
   }
 }
 

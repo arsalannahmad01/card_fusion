@@ -1,22 +1,38 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../models/card_model.dart';
 import '../models/card_template_model.dart';
 import '../models/template_element_model.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
+import '../utils/app_error.dart';
 
 class TemplateService {
-  final SupabaseClient _supabase = Supabase.instance.client;
+  final _supabase = Supabase.instance.client;
 
   Future<List<CardTemplate>> getTemplates() async {
     try {
+      debugPrint('Fetching templates from database...');
       final response = await _supabase
           .from('templates')
-          .select()
-          .order('name');
-
-      return (response as List).map((json) => CardTemplate.fromJson(json)).toList();
-    } catch (e) {
+          .select('''
+            id,
+            name,
+            type,
+            front_markup,
+            back_markup,
+            styles,
+            supported_card_types,
+            preview_image
+          ''')
+          .order('created_at');
+      
+      debugPrint('Templates response: $response');
+      final templates = (response as List).map((json) => CardTemplate.fromJson(json)).toList();
+      debugPrint('Parsed ${templates.length} templates');
+      return templates;
+    } catch (e, stackTrace) {
       debugPrint('Error fetching templates: $e');
-      return [];
+      debugPrint(stackTrace.toString());
+      rethrow;  // Rethrow to handle in UI
     }
   }
 
@@ -77,12 +93,53 @@ class TemplateService {
     }
   }
 
-  Future<void> applyTemplate(String cardId, String templateId) async {
+  Future<DigitalCard> applyTemplate(String cardId, String templateId) async {
     try {
+      // First get the complete template details
+      final template = await _supabase
+          .from('templates')
+          .select('''
+            id,
+            name,
+            type,
+            front_markup,
+            back_markup,
+            styles,
+            supported_card_types,
+            preview_image
+          ''')
+          .eq('id', templateId)
+          .single();
+
+      // Update the card
       await _supabase
           .from('digital_cards')
-          .update({'template_id': templateId})
+          .update({
+            'template_id': templateId,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
           .eq('id', cardId);
+
+      // Get the updated card with complete template data
+      final response = await _supabase
+          .from('digital_cards')
+          .select('''
+            *,
+            template:templates!template_id (
+              id,
+              name,
+              type,
+              front_markup,
+              back_markup,
+              styles,
+              supported_card_types,
+              preview_image
+            )
+          ''')
+          .eq('id', cardId)
+          .single();
+
+      return DigitalCard.fromJson(response);
     } catch (e) {
       debugPrint('Error applying template: $e');
       rethrow;
@@ -120,6 +177,51 @@ class TemplateService {
           .eq('id', templateId);
     } catch (e) {
       debugPrint('Error deleting template: $e');
+      rethrow;
+    }
+  }
+
+  Future<DigitalCard> createCardWithTemplate({
+    required DigitalCard card,
+    required String templateId,
+  }) async {
+    try {
+      final template = await getTemplateById(templateId);
+      if (template == null) {
+        throw AppError(
+          message: 'Template not found',
+          type: ErrorType.database,
+        );
+      }
+
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) {
+        throw AppError(
+          message: 'User not authenticated',
+          type: ErrorType.authentication,
+        );
+      }
+
+      final response = await _supabase
+          .from('digital_cards')
+          .insert({
+            'user_id': userId,
+            'name': card.name,
+            'email': card.email,
+            'type': card.type.name,
+            'job_title': card.jobTitle,
+            'company_name': card.companyName,
+            'phone': card.phone,
+            'website': card.website,
+            'template_id': templateId,
+            'template_styles': template.styles,
+          })
+          .select()
+          .single();
+
+      return DigitalCard.fromJson(response);
+    } catch (e) {
+      debugPrint('Error creating card with template: $e');
       rethrow;
     }
   }

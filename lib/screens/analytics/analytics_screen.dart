@@ -1,3 +1,4 @@
+import 'package:card_fusion/screens/analytics/activity_list_screen.dart';
 import 'package:flutter/material.dart';
 import '../../models/card_model.dart';
 import '../../services/card_service.dart';
@@ -39,15 +40,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   Future<void> _loadData() async {
     try {
       setState(() => _isLoading = true);
-      
+
       // Load cards
       final cards = await _cardService.getCards();
       _myCards = cards;
-      
+
       if (cards.isNotEmpty) {
         _selectedCard = cards.first;
         // Load analytics for first card
-        final analytics = await _analyticsService.getCardAnalytics(cards.first.id);
+        final analytics =
+            await _analyticsService.getCardAnalytics(cards.first.id);
         _analytics[cards.first.id] = analytics;
       }
 
@@ -68,13 +70,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   Future<void> _loadDataWithInitialCard() async {
     try {
       setState(() => _isLoading = true);
-      
+
       // Load all cards
       final cards = await _cardService.getCards();
       _myCards = cards;
-      
+
       // Load analytics for initial card
-      final analytics = await _analyticsService.getCardAnalytics(widget.initialCard!.id);
+      final analytics =
+          await _analyticsService.getCardAnalytics(widget.initialCard!.id);
       _analytics[widget.initialCard!.id] = analytics;
 
       if (mounted) {
@@ -94,7 +97,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   Future<void> _onCardSelected(DigitalCard card) async {
     setState(() {
       _selectedCard = card;
-      _isLoading = true;  // Show loading while fetching analytics
+      _isLoading = true; // Show loading while fetching analytics
     });
 
     try {
@@ -176,6 +179,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                             )
                           : CardAnalyticsScreen(card: _selectedCard!),
                     ),
+                    // _buildRecentActivity(),
                   ],
                 ),
     );
@@ -234,7 +238,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             }).toList(),
             onChanged: (cardId) {
               if (cardId != null) {
-                final selectedCard = _myCards.firstWhere((card) => card.id == cardId);
+                final selectedCard =
+                    _myCards.firstWhere((card) => card.id == cardId);
                 _onCardSelected(selectedCard);
               }
             },
@@ -243,4 +248,82 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       ),
     );
   }
-} 
+
+  Widget _buildActivityItem(Map<String, dynamic> activity) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: AppColors.primary.withOpacity(0.1),
+            child: Icon(
+              _getEventIcon(activity['event_type']),
+              color: AppColors.primary,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _getEventTitle(activity['event_type']),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                if (activity['scanner_email'] != null)
+                  Text(
+                    'by ${activity['scanner_email']}',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 12,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Text(
+            _formatDate(DateTime.parse(activity['created_at'])),
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getEventTitle(String eventType) {
+    switch (eventType) {
+      case 'view':
+        return 'Card Viewed';
+      case 'scan':
+        return 'Card Scanned';
+      case 'save':
+        return 'Card Saved';
+      default:
+        return 'Card Interaction';
+    }
+  }
+
+  IconData _getEventIcon(String eventType) {
+    switch (eventType) {
+      case 'view':
+        return Icons.visibility;
+      case 'scan':
+        return Icons.qr_code_scanner;
+      case 'save':
+        return Icons.bookmark;
+      default:
+        return Icons.touch_app;
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute}';
+  }
+}

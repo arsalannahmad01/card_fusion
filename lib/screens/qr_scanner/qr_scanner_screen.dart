@@ -264,8 +264,6 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         throw 'No cards available for testing';
       }
 
-      debugPrint('Testing scan for card: $testCardId');
-
       await _analyticsService.recordScan(
         cardId: testCardId,
         eventType: CardAnalyticEvent.scan,
