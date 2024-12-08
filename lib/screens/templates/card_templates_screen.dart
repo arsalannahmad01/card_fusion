@@ -241,13 +241,13 @@ class _CardTemplatesScreenState extends State<CardTemplatesScreen> with TickerPr
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
+                      color: AppColors.primary.withOpacity(1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       'Applied',
                       style: TextStyle(
-                        color: AppColors.primary,
+                        color: AppColors.secondary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),

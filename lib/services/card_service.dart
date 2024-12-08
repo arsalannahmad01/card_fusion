@@ -23,7 +23,9 @@ class CardService {
           .eq('user_id', user.id)
           .order('created_at', ascending: false);
 
-      return (response as List).map((json) => DigitalCard.fromJson(json)).toList();
+      return (response as List)
+          .map((json) => DigitalCard.fromJson(json))
+          .toList();
     } catch (e, stackTrace) {
       if (e is AppError) rethrow;
       throw AppError(
@@ -37,9 +39,7 @@ class CardService {
 
   Future<DigitalCard?> getCardById(String cardId) async {
     try {
-      final response = await _supabase
-          .from('digital_cards')
-          .select('''
+      final response = await _supabase.from('digital_cards').select('''
             *,
             template:templates(
               id,
@@ -53,9 +53,7 @@ class CardService {
               created_at,
               updated_at
             )
-          ''')
-          .eq('id', cardId)
-          .single();
+          ''').eq('id', cardId).single();
 
       return DigitalCard.fromJson(response);
     } catch (e) {
@@ -69,11 +67,9 @@ class CardService {
     // Remove any fields that might not exist in the database
     cardData.remove('shares');
     cardData.remove('views');
-    
-    final response = await _supabase
-        .from('digital_cards')
-        .insert(cardData)
-        .select('''
+
+    final response =
+        await _supabase.from('digital_cards').insert(cardData).select('''
           *,
           template:templates(
             id,
@@ -87,8 +83,7 @@ class CardService {
             created_at,
             updated_at
           )
-        ''')
-        .single();
+        ''').single();
 
     return DigitalCard.fromJson(response);
   }
@@ -98,7 +93,7 @@ class CardService {
     // Remove any fields that might not exist in the database
     cardData.remove('shares');
     cardData.remove('views');
-    
+
     final response = await _supabase
         .from('digital_cards')
         .update(cardData)
@@ -117,14 +112,16 @@ class CardService {
             created_at,
             updated_at
           )
-        ''')
-        .single();
+        ''').single();
 
     return DigitalCard.fromJson(response);
   }
 
   Future<void> deleteCard(String cardId) async {
-    await _supabase.from('digital_cards').delete().eq('id', cardId);
+    await _supabase
+        .from('saved_cards')
+        .delete()
+        .match({'card_id': cardId, 'user_id': _supabase.auth.currentUser!.id});
   }
 
   Future<List<DigitalCard>> searchCards({
@@ -216,26 +213,33 @@ class CardService {
   Future<List<DigitalCard>> getSavedCards() async {
     try {
       final response = await _supabase
-          .from('digital_cards')
+          .from('saved_cards')
           .select('''
-            *,
-            templates:template_id (
-              id,
-              name,
-              type,
-              front_markup,
-              back_markup,
-              styles,
-              supported_card_types,
-              preview_image
+            digital_cards!card_id (
+              *,
+              templates!template_id (
+                id,
+                name,
+                type,
+                front_markup,
+                back_markup,
+                styles,
+                supported_card_types,
+                preview_image
+              )
             )
           ''')
-          .order('created_at');
+          .eq('user_id', _supabase.auth.currentUser!.id);
 
-      return (response as List).map((json) => DigitalCard.fromJson(json)).toList();
+      debugPrint('Saved cards response: $response');
+
+      return (response as List)
+          .where((json) => json['digital_cards'] != null)
+          .map((json) => DigitalCard.fromJson(json['digital_cards']))
+          .toList();
     } catch (e) {
       debugPrint('Error fetching saved cards: $e');
-      rethrow;
+      return [];
     }
   }
 
@@ -266,14 +270,33 @@ class CardService {
 
   Future<void> removeSavedCard(String cardId) async {
     try {
-      await _supabase
-          .from('saved_cards')
-          .delete()
-          .eq('card_id', cardId)
-          .eq('user_id', _supabase.auth.currentUser!.id);
-    } catch (e) {
+      // Remove from saved_cards table in database
+      await _supabase.from('saved_cards').delete().match({
+        'card_id': cardId,
+        'user_id': _supabase.auth.currentUser!.id,
+      });
+
+      // Also remove from digital_cards if it's a saved card (not owned by user)
+      final card = await _supabase
+          .from('digital_cards')
+          .select()
+          .eq('id', cardId)
+          .single();
+
+      if (card['user_id'] != _supabase.auth.currentUser!.id) {
+        await _supabase.from('digital_cards').delete().match({
+          'id': cardId,
+          'user_id': _supabase.auth.currentUser!.id,
+        });
+      }
+    } catch (e, stackTrace) {
       debugPrint('Error removing saved card: $e');
-      rethrow;
+      throw AppError(
+        message: 'Failed to remove saved card',
+        type: ErrorType.database,
+        originalError: e,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -316,7 +339,9 @@ class CardService {
           .eq('user_id', _supabase.auth.currentUser!.id)
           .order('created_at');
 
-      return (response as List).map((json) => DigitalCard.fromJson(json)).toList();
+      return (response as List)
+          .map((json) => DigitalCard.fromJson(json))
+          .toList();
     } catch (e) {
       debugPrint('Error fetching user cards: $e');
       rethrow;

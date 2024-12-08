@@ -61,54 +61,74 @@ class TemplateRendererWidget extends StatelessWidget {
   }
 
   Widget _buildFront() {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return Stack(
+      children: [
+        // Logo Watermark
+
+        Positioned(
+          right: 5,
+          bottom: 5,
+          child: Opacity(
+            opacity: 0.4, // More subtle opacity for front side
+            child: Image.asset(
+              'lib/assets/logo.png', // Updated path to match pubspec.yaml
+              width: 150, // Slightly smaller for front side
+              height: 150,
+            ),
+          ),
+        ),
+
+        // Main Content
+        Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                radius: 30,
-                backgroundColor: Colors.white,
-                child: Text(
-                  card.name[0].toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 24,
-                    color: _parseColor(template.styles['primaryColor']),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      card.name,
-                      style: const TextStyle(
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundColor: Colors.white,
+                    child: Text(
+                      card.name[0].toUpperCase(),
+                      style: TextStyle(
                         fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: _parseColor(template.styles['primaryColor']),
                       ),
                     ),
-                    if (card.jobTitle != null)
-                      Text(
-                        card.jobTitle!,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: Colors.white70,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          card.name,
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
-                      ),
-                  ],
-                ),
+                        if (card.jobTitle != null)
+                          Text(
+                            card.jobTitle!,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.white70,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
+              const Spacer(),
+              _buildContactInfo(),
             ],
           ),
-          const Spacer(),
-          _buildContactInfo(),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -145,7 +165,6 @@ class TemplateRendererWidget extends StatelessWidget {
       width: double.infinity,
       height: double.infinity,
       decoration: BoxDecoration(
-        // color: Colors.white,
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -236,8 +255,10 @@ class WatermarkPainter extends CustomPainter {
     final double textWidth = textPainter.width;
     final double textHeight = textPainter.height;
     final double spacingMultiplier = 1.2;
-    final int rowCount = (size.height / (textHeight * spacingMultiplier)).ceil() + 2;
-    final int columnCount = (size.width / (textWidth * spacingMultiplier)).ceil() + 2;
+    final int rowCount =
+        (size.height / (textHeight * spacingMultiplier)).ceil() + 2;
+    final int columnCount =
+        (size.width / (textWidth * spacingMultiplier)).ceil() + 2;
 
     for (int i = -1; i < rowCount; i++) {
       for (int j = -1; j < columnCount; j++) {
