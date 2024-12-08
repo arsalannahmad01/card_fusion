@@ -97,4 +97,5 @@ flutter:
     - .env
     - lib/assets/logoCF.png
     - lib/assets/github.png
+    - lib/assets/logo.png
 

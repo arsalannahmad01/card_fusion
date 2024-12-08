@@ -48,6 +48,9 @@ class _HomeScreenState extends State<HomeScreen>
         _cardService.getSavedCards(),
       ]);
 
+      print('HERE ARE CARDS: $cards');
+      print('HERE ARE SAVED CARDS: $savedCards');
+
       if (mounted) {
         setState(() {
           _cards = cards;
@@ -194,7 +197,8 @@ class _HomeScreenState extends State<HomeScreen>
                                   await _authService.signOut();
                                   if (mounted) {
                                     Navigator.of(context).pushAndRemoveUntil(
-                                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                                      MaterialPageRoute(
+                                          builder: (_) => const LoginScreen()),
                                       (route) => false,
                                     );
                                   }
@@ -881,7 +885,8 @@ class _HomeScreenState extends State<HomeScreen>
               context: context,
               builder: (context) => AlertDialog(
                 title: const Text('Remove Card'),
-                content: const Text('Are you sure you want to remove this saved card?'),
+                content: const Text(
+                    'Are you sure you want to remove this saved card?'),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(context, false),
