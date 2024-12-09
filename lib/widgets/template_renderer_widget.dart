@@ -90,9 +90,13 @@ class TemplateRendererWidget extends StatelessWidget {
                     radius: 30,
                     backgroundColor: Colors.white,
                     child: card.user_image_url != null
-                        ? Image.network(
-                            card.user_image_url!,
-                            fit: BoxFit.cover,
+                        ? ClipOval(
+                            child: Image.network(
+                              card.user_image_url!,
+                              fit: BoxFit.cover,
+                              width: 60, // Diameter matching avatar size
+                              height: 60,
+                            ),
                           )
                         : Text(
                             card.name[0].toUpperCase(),

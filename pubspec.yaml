@@ -37,6 +37,7 @@ dependencies:
   uuid: ^4.3.3
   qr_code_scanner: ^1.0.1
   image_picker: ^1.0.7
+  image_cropper: ^5.0.1
   permission_handler: ^11.3.0
   supabase_flutter: ^1.10.25
   shared_preferences: ^2.2.2
@@ -54,7 +55,6 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
@@ -95,7 +95,6 @@ flutter:
 
   assets:
     - .env
-    - lib/assets/logoCF.png
     - lib/assets/github.png
     - lib/assets/logo.png
 
