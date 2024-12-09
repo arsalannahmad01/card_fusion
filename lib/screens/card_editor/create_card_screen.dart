@@ -7,6 +7,9 @@ import '../../config/theme.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../utils/error_display.dart';
 import '../../utils/app_error.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:uuid/uuid.dart';
 
 class CreateCardScreen extends StatefulWidget {
   final DigitalCard? card;
@@ -22,6 +25,8 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
   final _authService = SupabaseService();
   bool _isLoading = false;
   CardType _selectedType = CardType.individual;
+  String? _profileImagePath;
+  String? _profileImageUrl;
 
   // Controllers
   late final TextEditingController _nameController;
@@ -85,6 +90,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     _twitterController.text = card.socialLinks?['twitter'] ?? '';
     _facebookController.text = card.socialLinks?['facebook'] ?? '';
     _instagramController.text = card.socialLinks?['instagram'] ?? '';
+    _profileImageUrl = card.user_image_url;
   }
 
   @override
@@ -112,7 +118,7 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       if (!_formKey.currentState!.validate()) {
         throw AppError(
           message: 'Please fill in all required fields',
-          type: ErrorType.validation
+          type: ErrorType.validation,
         );
       }
 
@@ -120,55 +126,46 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       final user = _authService.currentUser;
       if (user == null) throw 'User not authenticated';
 
+      final now = DateTime.now();
       final card = DigitalCard(
-        id: widget.card?.id ?? '',
+        id: widget.card?.id ?? const Uuid().v4(),
         userId: user.id,
         name: _nameController.text,
         email: _emailController.text,
         phone: _phoneController.text.isEmpty ? null : _phoneController.text,
-        website:
-            _websiteController.text.isEmpty ? null : _websiteController.text,
+        website: _websiteController.text.isEmpty ? null : _websiteController.text,
         type: _selectedType,
-        jobTitle:
-            _jobTitleController.text.isEmpty ? null : _jobTitleController.text,
-        companyName: _companyNameController.text.isEmpty
-            ? null
-            : _companyNameController.text,
-        businessType: _businessTypeController.text.isEmpty
-            ? null
-            : _businessTypeController.text,
-        yearFounded: _yearFoundedController.text.isEmpty
-            ? null
-            : int.parse(_yearFoundedController.text),
-        employeeCount: _employeeCountController.text.isEmpty
-            ? null
-            : int.parse(_employeeCountController.text),
-        headquarters: _headquartersController.text.isEmpty
-            ? null
-            : _headquartersController.text,
-        registrationNumber: _registrationController.text.isEmpty
-            ? null
-            : _registrationController.text,
+        user_image_url: _profileImageUrl,
+        jobTitle: _jobTitleController.text.isEmpty ? null : _jobTitleController.text,
+        companyName: _companyNameController.text.isEmpty ? null : _companyNameController.text,
+        businessType: _businessTypeController.text.isEmpty ? null : _businessTypeController.text,
+        yearFounded: _yearFoundedController.text.isEmpty ? null : int.parse(_yearFoundedController.text),
+        employeeCount: _employeeCountController.text.isEmpty ? null : int.parse(_employeeCountController.text),
+        headquarters: _headquartersController.text.isEmpty ? null : _headquartersController.text,
+        registrationNumber: _registrationController.text.isEmpty ? null : _registrationController.text,
         socialLinks: {
-          if (_linkedinController.text.isNotEmpty)
-            'linkedin': _linkedinController.text,
-          if (_twitterController.text.isNotEmpty)
-            'twitter': _twitterController.text,
-          if (_facebookController.text.isNotEmpty)
-            'facebook': _facebookController.text,
-          if (_instagramController.text.isNotEmpty)
-            'instagram': _instagramController.text,
+          if (_linkedinController.text.isNotEmpty) 'linkedin': _linkedinController.text,
+          if (_twitterController.text.isNotEmpty) 'twitter': _twitterController.text,
+          if (_facebookController.text.isNotEmpty) 'facebook': _facebookController.text,
+          if (_instagramController.text.isNotEmpty) 'instagram': _instagramController.text,
         },
+        createdAt: widget.card?.createdAt ?? now,
+        updatedAt: now,
+        is_public: true,
+        share_count: 0,
       );
+
+      debugPrint('Creating card with data: ${card.toJson()}');
 
       if (widget.card == null) {
         await _cardService.createCard(card);
       } else {
         await _cardService.updateCard(card);
       }
-      
+
       if (mounted) Navigator.pop(context, true);
     } catch (e, stackTrace) {
+      debugPrint('Error creating card: $e');
       final error = AppError.handleError(e, stackTrace);
       if (mounted) {
         ErrorDisplay.showError(context, error);
@@ -176,6 +173,30 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _pickProfileImage() async {
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+      
+      if (pickedFile == null) return;
+      
+      final bytes = await pickedFile.readAsBytes();
+      final fileName = '${DateTime.now().millisecondsSinceEpoch}_${pickedFile.name}';
+      
+      final imageUrl = await _cardService.uploadImage(fileName, bytes);
+      
+      setState(() {
+        _profileImagePath = pickedFile.path;
+        _profileImageUrl = imageUrl;
+      });
+    } catch (e, stackTrace) {
+      final error = AppError.handleError(e, stackTrace);
+      if (mounted) {
+        ErrorDisplay.showError(context, error);
       }
     }
   }
@@ -298,6 +319,37 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                   _buildSection(
                     'Basic Information',
                     [
+                      Center(
+                        child: Stack(
+                          children: [
+                            CircleAvatar(
+                              radius: 50,
+                              backgroundColor: Colors.grey[200],
+                              backgroundImage: _profileImagePath != null 
+                                ? FileImage(File(_profileImagePath!))
+                                : (_profileImageUrl != null 
+                                  ? NetworkImage(_profileImageUrl!) as ImageProvider
+                                  : null),
+                              child: _profileImagePath == null && _profileImageUrl == null
+                                ? const Icon(Icons.person, size: 50, color: Colors.grey)
+                                : null,
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: CircleAvatar(
+                                backgroundColor: AppColors.primary,
+                                radius: 18,
+                                child: IconButton(
+                                  icon: const Icon(Icons.camera_alt, size: 18, color: Colors.white),
+                                  onPressed: _pickProfileImage,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
                       _buildTextField(
                         controller: _nameController,
                         label: 'Full Name',
@@ -366,13 +418,13 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
                           controller: _headquartersController,
                           label: 'Headquarters',
                           icon: Icons.location_on_outlined,
-                          required: _selectedType == CardType.company,
+                          required: _selectedType == CardType.business,
                         ),
                         _buildTextField(
                           controller: _registrationController,
                           label: 'Registration Number',
                           icon: Icons.numbers_outlined,
-                          required: _selectedType == CardType.company,
+                          required: _selectedType == CardType.business,
                         ),
                       ],
                     ],

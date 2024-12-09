@@ -376,13 +376,15 @@ class _CardViewerScreenState extends State<CardViewerScreen>
                   child: _buildActionButton(
                     icon: Icons.analytics,
                     label: 'Analytics',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            AnalyticsScreen(initialCard: widget.card),
-                      ),
-                    ),
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Analytics feature coming soon!'),
+                          duration: Duration(seconds: 2),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
                   ),
                 ),
                 SizedBox(

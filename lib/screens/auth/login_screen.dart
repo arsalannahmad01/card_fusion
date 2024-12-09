@@ -179,9 +179,57 @@ class _LoginScreenState extends State<LoginScreen>
                                 text: 'Share instantly with QR codes',
                               ),
                               const SizedBox(height: 16),
-                              _buildFeatureItem(
-                                icon: Icons.analytics,
-                                text: 'Track card analytics and engagement',
+                              // _buildFeatureItem(
+                              //   icon: Icons.analytics,
+                              //   text: 'Track card analytics and engagement',
+                              // ),
+
+                              //temporary
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: AppColors.surface.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  children: [
+                                    Icon(
+                                      Icons.analytics,
+                                      color: AppColors.textLight,
+                                      size: 24,
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Track card analytics and engagement',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w500,
+                                              color: AppColors.textLight,
+                                              letterSpacing: 0.2,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            'Coming soon',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: AppColors.textLight
+                                                  .withOpacity(0.8),
+                                              fontWeight: FontWeight.w400,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
