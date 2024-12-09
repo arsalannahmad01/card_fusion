@@ -89,13 +89,19 @@ class TemplateRendererWidget extends StatelessWidget {
                   CircleAvatar(
                     radius: 30,
                     backgroundColor: Colors.white,
-                    child: Text(
-                      card.name[0].toUpperCase(),
-                      style: TextStyle(
-                        fontSize: 24,
-                        color: _parseColor(template.styles['primaryColor']),
-                      ),
-                    ),
+                    child: card.user_image_url != null
+                        ? Image.network(
+                            card.user_image_url!,
+                            fit: BoxFit.cover,
+                          )
+                        : Text(
+                            card.name[0].toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 24,
+                              color:
+                                  _parseColor(template.styles['primaryColor']),
+                            ),
+                          ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(

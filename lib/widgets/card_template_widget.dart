@@ -47,18 +47,30 @@ class CardTemplateWidget extends StatelessWidget {
   }
 
   Widget _buildFront() {
+    debugPrint('Building card front with image URL: ${card.user_image_url}');
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (card.user_image_url != null) ...[
-            CircleAvatar(
-              radius: 40,
-              backgroundImage: NetworkImage(card.user_image_url!),
-            ),
-            const SizedBox(height: 16),
-          ],
+          CircleAvatar(
+            radius: 40,
+            backgroundColor: Colors.grey[200],
+            backgroundImage: card.user_image_url != null 
+              ? NetworkImage(card.user_image_url!)
+              : null,
+            onBackgroundImageError: (e, stackTrace) {
+              debugPrint('Error loading image: $e');
+            },
+            child: card.user_image_url == null
+              ? Icon(
+                  Icons.person,
+                  size: 40,
+                  color: _parseColor(styles['primaryColor']),
+                )
+              : null,
+          ),
+          const SizedBox(height: 16),
           Text(
             card.name,
             style: const TextStyle(
