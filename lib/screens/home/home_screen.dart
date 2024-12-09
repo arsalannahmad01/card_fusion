@@ -520,21 +520,14 @@ class _HomeScreenState extends State<HomeScreen>
               _buildActionButton(
                 'Analytics',
                 Icons.analytics,
-                const Color(0xFF4CAF50),
+                const Color(0xFF4CAF50).withOpacity(0.5),
                 () {
-                  if (_cards.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content:
-                              Text('Create a card first to view analytics')),
-                    );
-                    return;
-                  }
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) =>
-                            AnalyticsScreen(initialCard: _cards.first)),
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Analytics feature coming soon!'),
+                      duration: Duration(seconds: 2),
+                      behavior: SnackBarBehavior.floating,
+                    ),
                   );
                 },
               ),

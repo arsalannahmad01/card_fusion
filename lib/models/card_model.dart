@@ -1,6 +1,9 @@
 import 'card_template_model.dart';
 
-enum CardType { individual, business, company }
+enum CardType {
+  individual,
+  business,
+}
 
 class DigitalCard {
   final String id;
@@ -16,14 +19,15 @@ class DigitalCard {
   final String? companyName;
   final String? businessType;
   final int? yearFounded;
-  final String? userImageUrl;
+  final String? user_image_url;
   final String? logoUrl;
   final int? employeeCount;
   final String? headquarters;
   final String? registrationNumber;
   final DateTime createdAt;
   final DateTime updatedAt;
-  final int? age;
+  final bool is_public;
+  final int share_count;
 
   DigitalCard({
     required this.id,
@@ -39,23 +43,18 @@ class DigitalCard {
     this.companyName,
     this.businessType,
     this.yearFounded,
-    this.userImageUrl,
+    this.user_image_url,
     this.logoUrl,
     this.employeeCount,
     this.headquarters,
     this.registrationNumber,
-    this.age,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-  }) : createdAt = createdAt ?? DateTime.now(),
-       updatedAt = updatedAt ?? DateTime.now();
+    required this.createdAt,
+    required this.updatedAt,
+    this.is_public = true,
+    this.share_count = 0,
+  });
 
   factory DigitalCard.fromJson(Map<String, dynamic> json) {
-    CardTemplate? template;
-    if (json['template'] != null) {
-      template = CardTemplate.fromJson(json['template']);
-    }
-
     return DigitalCard(
       id: json['id'],
       userId: json['user_id'],
@@ -70,42 +69,42 @@ class DigitalCard {
       companyName: json['company_name'],
       businessType: json['business_type'],
       yearFounded: json['year_founded'],
-      userImageUrl: json['user_image_url'],
+      user_image_url: json['user_image_url'],
       logoUrl: json['logo_url'],
       employeeCount: json['employee_count'],
       headquarters: json['headquarters'],
       registrationNumber: json['registration_number'],
-      age: json['age'],
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
+      is_public: json['is_public'] ?? true,
+      share_count: json['share_count'] ?? 0,
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      if (id.isNotEmpty) 'id': id,
-      'user_id': userId,
-      'name': name,
-      'email': email,
-      'phone': phone,
-      'website': website,
-      'type': type.name,
-      'social_links': socialLinks,
-      'template_id': template_id,
-      'job_title': jobTitle,
-      'company_name': companyName,
-      'business_type': businessType,
-      'year_founded': yearFounded,
-      'user_image_url': userImageUrl,
-      'logo_url': logoUrl,
-      'employee_count': employeeCount,
-      'headquarters': headquarters,
-      'registration_number': registrationNumber,
-      'age': age,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
-    };
-  }
+  Map<String, dynamic> toJson() => {
+    if (id.isNotEmpty) 'id': id,
+    'user_id': userId,
+    'name': name,
+    'email': email,
+    'phone': phone,
+    'website': website,
+    'type': type.name,
+    'social_links': socialLinks,
+    'template_id': template_id,
+    'job_title': jobTitle,
+    'company_name': companyName,
+    'business_type': businessType,
+    'year_founded': yearFounded,
+    'user_image_url': user_image_url,
+    'logo_url': logoUrl,
+    'employee_count': employeeCount,
+    'headquarters': headquarters,
+    'registration_number': registrationNumber,
+    'created_at': createdAt.toIso8601String(),
+    'updated_at': updatedAt.toIso8601String(),
+    'is_public': is_public,
+    'share_count': share_count,
+  };
 
   DigitalCard copyWith({
     String? id,
@@ -114,14 +113,17 @@ class DigitalCard {
     String? email,
     CardType? type,
     Map<String, String>? socialLinks,
-    CardTemplate? template,
+    String? template_id,
     String? jobTitle,
     String? companyName,
     String? businessType,
     String? phone,
     String? website,
+    String? user_image_url,
     DateTime? createdAt,
     DateTime? updatedAt,
+    bool? is_public,
+    int? share_count,
   }) {
     return DigitalCard(
       id: id ?? this.id,
@@ -136,8 +138,11 @@ class DigitalCard {
       businessType: businessType ?? this.businessType,
       phone: phone ?? this.phone,
       website: website ?? this.website,
+      user_image_url: user_image_url ?? this.user_image_url,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      is_public: is_public ?? this.is_public,
+      share_count: share_count ?? this.share_count,
     );
   }
 }

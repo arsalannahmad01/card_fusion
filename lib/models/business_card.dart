@@ -80,7 +80,7 @@ class BusinessCard {
       website: card.website ?? '',
       socialLinks: card.socialLinks?.entries.map((e) => 
         SocialLink(platform: e.key, url: e.value)).toList() ?? [],
-      profileImagePath: card.userImageUrl,
+      profileImagePath: card.user_image_url,
       logoPath: card.logoUrl,
       design: CardDesign(
         template: 'default',

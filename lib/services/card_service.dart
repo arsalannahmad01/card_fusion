@@ -63,58 +63,52 @@ class CardService {
   }
 
   Future<DigitalCard> createCard(DigitalCard card) async {
+    debugPrint('Creating card in service: ${card.toJson()}');
     final cardData = card.toJson();
     // Remove any fields that might not exist in the database
     cardData.remove('shares');
     cardData.remove('views');
+    // Ensure image URL is properly set
+    if (cardData['user_image_url'] != null && cardData['user_image_url'].isEmpty) {
+      cardData.remove('user_image_url');
+    }
 
-    final response =
-        await _supabase.from('digital_cards').insert(cardData).select('''
-          *,
-          template:templates(
-            id,
-            name,
-            type,
-            supported_card_types,
-            styles,
-            preview_image,
-            front_layout,
-            back_layout,
-            created_at,
-            updated_at
-          )
-        ''').single();
+    try {
+      final response = await _supabase
+          .from('digital_cards')
+          .insert(cardData)
+          .select()
+          .single();
 
-    return DigitalCard.fromJson(response);
+      debugPrint('Card creation response: $response');
+      return DigitalCard.fromJson(response);
+    } catch (e) {
+      debugPrint('Error in createCard: $e');
+      rethrow;
+    }
   }
 
   Future<DigitalCard> updateCard(DigitalCard card) async {
     final cardData = card.toJson();
-    // Remove any fields that might not exist in the database
     cardData.remove('shares');
     cardData.remove('views');
+    if (cardData['user_image_url'] != null && cardData['user_image_url'].isEmpty) {
+      cardData.remove('user_image_url');
+    }
 
-    final response = await _supabase
-        .from('digital_cards')
-        .update(cardData)
-        .eq('id', card.id)
-        .select('''
-          *,
-          template:templates(
-            id,
-            name,
-            type,
-            supported_card_types,
-            styles,
-            preview_image,
-            front_layout,
-            back_layout,
-            created_at,
-            updated_at
-          )
-        ''').single();
+    try {
+      final response = await _supabase
+          .from('digital_cards')
+          .update(cardData)
+          .eq('id', card.id)
+          .select()
+          .single();
 
-    return DigitalCard.fromJson(response);
+      return DigitalCard.fromJson(response);
+    } catch (e) {
+      debugPrint('Error updating card: $e');
+      rethrow;
+    }
   }
 
   Future<void> deleteCard(String cardId) async {
@@ -253,11 +247,36 @@ class CardService {
         );
       }
 
+      // First check if card is already saved
+      final existing = await _supabase
+          .from('saved_cards')
+          .select()
+          .match({
+            'card_id': cardId,
+            'user_id': userId,
+          })
+          .maybeSingle();
+
+      if (existing != null) {
+        throw AppError(
+          message: 'Card is already saved',
+          type: ErrorType.validation,
+        );
+      }
+
+      // Create a new entry in saved_cards table
       await _supabase.from('saved_cards').insert({
         'card_id': cardId,
         'user_id': userId,
+        'saved_at': DateTime.now().toIso8601String(),
+        'notes': '',  // Optional
+        'tags': [],   // Optional
       });
+
+      debugPrint('Card saved successfully: $cardId');
+
     } catch (e, stackTrace) {
+      debugPrint('Error saving card: $e');
       if (e is AppError) rethrow;
       throw AppError(
         message: 'Failed to save card',
