@@ -41,13 +41,15 @@ class CardAnalytics {
   factory CardAnalytics.fromJson(Map<String, dynamic> json) {
     return CardAnalytics(
       cardId: json['card_id'],
-      cardName: json['card_name'],
-      cardType: json['card_type'],
+      cardName: json['card_name'] ?? 'Unknown',
+      cardType: json['card_type'] ?? 'Unknown',
       totalScans: json['total_scans'] ?? 0,
       totalSaves: json['total_saves'] ?? 0,
       totalViews: json['total_views'] ?? 0,
       uniqueScanners: json['unique_scanners'] ?? 0,
-      lastInteraction: DateTime.parse(json['last_interaction']),
+      lastInteraction: json['last_interaction'] != null 
+        ? DateTime.parse(json['last_interaction'])
+        : DateTime.now(),
       uniqueCities: json['unique_cities'] ?? 0,
       uniqueCountries: json['unique_countries'] ?? 0,
       scansByCity: Map<String, int>.from(json['scans_by_city'] ?? {}),
@@ -59,30 +61,30 @@ class CardAnalytics {
 class ScanDetails {
   final String deviceType;
   final String platform;
+  final String source;
   final String? city;
   final String? country;
-  final String source;
-  final bool isTestScan;
   final Map<String, dynamic>? location;
+  final bool isTestScan;
 
   ScanDetails({
     required this.deviceType,
     required this.platform,
+    required this.source,
     this.city,
     this.country,
-    required this.source,
-    this.isTestScan = false,
     this.location,
+    this.isTestScan = false,
   });
 
   Map<String, dynamic> toJson() => {
     'device_type': deviceType,
     'platform': platform,
+    'source': source,
     'city': city,
     'country': country,
-    'source': source,
-    'is_test_scan': isTestScan,
     'location': location,
+    'is_test_scan': isTestScan,
   };
 }
 
@@ -141,18 +143,65 @@ class AnalyticsService {
     }
   }
 
-  Future<CardAnalytics?> getCardAnalytics(String cardId) async {
+  Future<List<CardAnalytics>> getCardAnalytics(String cardId) async {
     try {
-      final response = await _supabase
-          .from('card_analytics_summary')
-          .select()
-          .eq('card_id', cardId)
+      debugPrint('Fetching analytics for card: $cardId');
+      final cardDetails = await _supabase
+          .from('digital_cards')
+          .select('id, name, type')
+          .eq('id', cardId)
           .single();
-      return CardAnalytics.fromJson(response);
+
+      final response = await _supabase
+          .from('card_analytics')
+          .select('''
+            id,
+            card_id,
+            event_type,
+            city,
+            country,
+            device_info,
+            location,
+            scan_source,
+            created_at,
+            scanner_user_id
+          ''')
+          .eq('card_id', cardId)
+          .order('created_at', ascending: false);
+
+      debugPrint('Analytics response length: ${(response as List).length}');
+      if (response.isEmpty) return [];
+      
+      final summary = {
+        'card_id': cardId,
+        'card_name': cardDetails['name'],
+        'card_type': cardDetails['type'],
+        'total_scans': response.where((r) => r['event_type'] == 'scan').length,
+        'total_views': response.where((r) => r['event_type'] == 'view').length,
+        'total_saves': response.where((r) => r['event_type'] == 'save').length,
+        'unique_scanners': response.map((r) => r['scanner_user_id']).toSet().length,
+        'last_interaction': response.first['created_at'],
+        'unique_cities': response.map((r) => r['city']).where((c) => c != null).toSet().length,
+        'unique_countries': response.map((r) => r['country']).where((c) => c != null).toSet().length,
+        'scans_by_city': _calculateScansByCity(response),
+        'last_scan_details': response.first,
+      };
+
+      debugPrint('Created summary: $summary');
+      return [CardAnalytics.fromJson(summary)];
     } catch (e) {
-      debugPrint('Error getting card analytics: $e');
-      return null;
+      debugPrint('Error fetching analytics: $e');
+      return [];
     }
+  }
+
+  Map<String, int> _calculateScansByCity(List<dynamic> records) {
+    final Map<String, int> scansByCity = {};
+    for (var record in records) {
+      final city = record['city']?.toString() ?? 'Unknown';
+      scansByCity[city] = (scansByCity[city] ?? 0) + 1;
+    }
+    return scansByCity;
   }
 
   Future<List<CardAnalytics>> getMyCardsAnalytics() async {
@@ -190,11 +239,14 @@ class AnalyticsService {
           'type': details.deviceType,
           'platform': details.platform,
         },
-        'location': details.location != null ? {'address': details.location} : null,
+        'city': details.city,
+        'country': details.country,
+        'location': details.location,
         'scan_source': details.source,
         'created_at': DateTime.now().toIso8601String(),
       };
 
+      debugPrint('Recording analytics with location data: ${details.city}, ${details.country}');
       await _supabase.from('card_analytics').insert(data);
       debugPrint('Analytics recorded successfully');
     } catch (e) {

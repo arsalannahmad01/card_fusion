@@ -19,6 +19,8 @@ import 'dart:io';
 import '../../utils/error_handler.dart';
 import '../../services/template_service.dart';
 import '../analytics/activity_list_screen.dart';
+import '../../services/location_service.dart';
+import '../../services/permissions_service.dart';
 
 class CardViewerScreen extends StatefulWidget {
   final DigitalCard card;
@@ -58,6 +60,45 @@ class _CardViewerScreenState extends State<CardViewerScreen>
   void initState() {
     super.initState();
     _selectedCard = widget.card;
+    _recordView();
+    _initializeAnimation();
+    _loadTemplate();
+  }
+
+  Future<void> _recordView() async {
+    try {
+      final permissionGranted = await PermissionsService().checkLocationPermission();
+      if (!permissionGranted) {
+        debugPrint('Location permission not granted');
+        return;
+      }
+
+      final locationData = await LocationService().getCurrentLocation();
+      debugPrint('Location data for analytics: $locationData');
+      
+      if (locationData.isEmpty) {
+        debugPrint('Could not get location data');
+        return;
+      }
+
+      await _analyticsService.recordScan(
+        cardId: widget.card.id,
+        eventType: CardAnalyticEvent.view,
+        details: ScanDetails(
+          deviceType: 'mobile',
+          platform: Platform.isIOS ? 'iOS' : 'Android',
+          source: 'card_viewer',
+          city: locationData['city'],
+          country: locationData['country'],
+          location: locationData['coordinates'],
+        ),
+      );
+    } catch (e) {
+      debugPrint('Error recording view: $e');
+    }
+  }
+
+  Future<void> _initializeAnimation() {
     _flipController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
@@ -70,14 +111,13 @@ class _CardViewerScreenState extends State<CardViewerScreen>
       ),
     );
 
-    // Initialize card sides
-    _loadTemplate();
-    _trackCardView();
+    return Future.value();
   }
 
   Future<void> _loadTemplate() async {
     if (_selectedCard.template_id != null) {
-      final template = await _templateService.getTemplateById(_selectedCard.template_id!);
+      final template =
+          await _templateService.getTemplateById(_selectedCard.template_id!);
       if (template != null && mounted) {
         _buildSides(template);
       }
@@ -377,14 +417,23 @@ class _CardViewerScreenState extends State<CardViewerScreen>
                     icon: Icons.analytics,
                     label: 'Analytics',
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Analytics feature coming soon!'),
-                          duration: Duration(seconds: 2),
-                          behavior: SnackBarBehavior.floating,
-                        ),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const AnalyticsScreen()),
                       );
                     },
+
+                    // Disable Analytics button
+                    // () {
+                    //   ScaffoldMessenger.of(context).showSnackBar(
+                    //     const SnackBar(
+                    //       content: Text('Analytics feature coming soon!'),
+                    //       duration: Duration(seconds: 2),
+                    //       behavior: SnackBarBehavior.floating,
+                    //     ),
+                    //   );
+                    // },
                   ),
                 ),
                 SizedBox(
@@ -922,8 +971,25 @@ class _CardViewerScreenState extends State<CardViewerScreen>
   }
 
   Future<void> _shareCard() async {
-    setState(() => _isLoading = true);
     try {
+      setState(() => _isLoading = true);
+
+      final locationData = await LocationService().getCurrentLocation();
+      debugPrint('Location data for share: $locationData');
+
+      await _analyticsService.recordScan(
+        cardId: _selectedCard.id,
+        eventType: CardAnalyticEvent.share,
+        details: ScanDetails(
+          deviceType: 'mobile',
+          platform: Platform.isIOS ? 'iOS' : 'Android',
+          source: 'card_share',
+          city: locationData['city'],
+          country: locationData['country'],
+          location: locationData['coordinates'],
+        ),
+      );
+
       // Capture front card
       final frontBytes = await _captureCard(_cardKey);
       if (frontBytes == null) {

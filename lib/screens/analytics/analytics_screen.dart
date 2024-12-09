@@ -23,7 +23,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   final _analyticsService = AnalyticsService();
   bool _isLoading = true;
   List<DigitalCard> _myCards = [];
-  final Map<String, CardAnalytics?> _analytics = {};
+  final Map<String, List<CardAnalytics>> _analytics = {};
   DigitalCard? _selectedCard;
 
   @override
@@ -48,8 +48,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       if (cards.isNotEmpty) {
         _selectedCard = cards.first;
         // Load analytics for first card
-        final analytics =
-            await _analyticsService.getCardAnalytics(cards.first.id);
+        final analytics = await _analyticsService.getCardAnalytics(cards.first.id);
+        debugPrint('Loaded analytics: ${analytics.length} records');
         _analytics[cards.first.id] = analytics;
       }
 

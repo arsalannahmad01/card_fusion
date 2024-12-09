@@ -517,19 +517,32 @@ class _HomeScreenState extends State<HomeScreen>
                   MaterialPageRoute(builder: (_) => const QRScannerScreen()),
                 ),
               ),
+
+              //Diabled Analytics button
+              // _buildActionButton(
+              //   'Analytics',
+              //   Icons.analytics,
+              //   const Color(0xFF4CAF50).withOpacity(0.5),
+              //   () {
+              //     ScaffoldMessenger.of(context).showSnackBar(
+              //       const SnackBar(
+              //         content: Text('Analytics feature coming soon!'),
+              //         duration: Duration(seconds: 2),
+              //         behavior: SnackBarBehavior.floating,
+              //       ),
+              //     );
+              //   },
+              // ),
+
+              // Active Analytics button
               _buildActionButton(
                 'Analytics',
                 Icons.analytics,
-                const Color(0xFF4CAF50).withOpacity(0.5),
-                () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Analytics feature coming soon!'),
-                      duration: Duration(seconds: 2),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                },
+                const Color(0xFF4CAF50),
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AnalyticsScreen()),
+                ),
               ),
               _buildActionButton(
                 'Templates',

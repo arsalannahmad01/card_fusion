@@ -9,6 +9,7 @@ import '../../services/analytics_service.dart';
 import '../../config/theme.dart';
 import '../../utils/app_error.dart';
 import '../../utils/error_display.dart';
+import '../../services/location_service.dart';
 
 class QRScannerScreen extends StatefulWidget {
   const QRScannerScreen({super.key});
@@ -198,13 +199,13 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   Future<void> _processQRCode(String data) async {
     try {
       setState(() => _isProcessing = true);
-      
+
+      final locationData = await LocationService().getCurrentLocation();
+      debugPrint('Location data for QR scan: $locationData');
+
       final qrData = jsonDecode(data);
       if (qrData['type'] != 'digital_card' || qrData['id'] == null) {
-        throw AppError(
-          message: 'Invalid QR code format',
-          type: ErrorType.scan
-        );
+        throw AppError(message: 'Invalid QR code format', type: ErrorType.scan);
       }
 
       await _scanService.recordScan(
@@ -229,7 +230,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
             const SnackBar(content: Text('Card saved to your collection')),
           );
         }
-        
+
         await controller?.resumeCamera();
       }
 
@@ -240,6 +241,9 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
           deviceType: 'mobile',
           platform: Platform.isIOS ? 'iOS' : 'Android',
           source: 'qr_scan',
+          city: locationData['city'],
+          country: locationData['country'],
+          location: locationData['coordinates'],
         ),
       );
     } catch (e, stackTrace) {

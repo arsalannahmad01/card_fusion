@@ -19,7 +19,7 @@ class CardAnalyticsScreen extends StatefulWidget {
 class _CardAnalyticsScreenState extends State<CardAnalyticsScreen> {
   final _analyticsService = AnalyticsService();
   bool _isLoading = true;
-  CardAnalytics? _analytics;
+  List<CardAnalytics> _analytics = [];
 
   @override
   void initState() {
@@ -30,9 +30,8 @@ class _CardAnalyticsScreenState extends State<CardAnalyticsScreen> {
   Future<void> _loadAnalytics() async {
     try {
       setState(() => _isLoading = true);
-      final analytics =
-          await _analyticsService.getCardAnalytics(widget.card.id);
-      if (analytics == null) {
+      final analytics = await _analyticsService.getCardAnalytics(widget.card.id);
+      if (analytics.isEmpty) {
         throw AppError(
             message: 'Failed to load analytics data',
             type: ErrorType.analytics);
@@ -59,7 +58,7 @@ class _CardAnalyticsScreenState extends State<CardAnalyticsScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (_analytics == null) {
+    if (_analytics.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -108,7 +107,7 @@ class _CardAnalyticsScreenState extends State<CardAnalyticsScreen> {
               Expanded(
                 child: _buildStatCard(
                   'Total Scans',
-                  _analytics!.totalScans.toString(),
+                  _analytics[0].totalScans.toString(),
                   Icons.qr_code_scanner,
                   AppColors.primary,
                 ),
@@ -117,7 +116,7 @@ class _CardAnalyticsScreenState extends State<CardAnalyticsScreen> {
               Expanded(
                 child: _buildStatCard(
                   'Total Views',
-                  _analytics!.totalViews.toString(),
+                  _analytics[0].totalViews.toString(),
                   Icons.visibility,
                   AppColors.secondary,
                 ),
@@ -130,7 +129,7 @@ class _CardAnalyticsScreenState extends State<CardAnalyticsScreen> {
               Expanded(
                 child: _buildStatCard(
                   'Total Saves',
-                  _analytics!.totalSaves.toString(),
+                  _analytics[0].totalSaves.toString(),
                   Icons.bookmark,
                   Colors.orange,
                 ),
@@ -139,7 +138,7 @@ class _CardAnalyticsScreenState extends State<CardAnalyticsScreen> {
               Expanded(
                 child: _buildStatCard(
                   'Unique Users',
-                  _analytics!.uniqueScanners.toString(),
+                  _analytics[0].uniqueScanners.toString(),
                   Icons.people,
                   Colors.purple,
                 ),
@@ -149,7 +148,7 @@ class _CardAnalyticsScreenState extends State<CardAnalyticsScreen> {
           const SizedBox(height: 24),
           AnalyticsCharts(
             cardId: widget.card.id,
-            analytics: _analytics!,
+            analytics: _analytics[0],
           ),
           const SizedBox(height: 24),
           _buildLastInteractionCard(),
@@ -250,7 +249,7 @@ class _CardAnalyticsScreenState extends State<CardAnalyticsScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _formatDate(_analytics!.lastInteraction),
+                  _formatDate(_analytics[0].lastInteraction),
                   style: const TextStyle(
                     fontSize: 14,
                     color: AppColors.textSecondary,

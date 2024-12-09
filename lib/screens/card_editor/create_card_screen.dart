@@ -10,6 +10,7 @@ import '../../utils/app_error.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
+import 'package:image_cropper/image_cropper.dart';
 
 class CreateCardScreen extends StatefulWidget {
   final DigitalCard? card;
@@ -184,13 +185,38 @@ class _CreateCardScreenState extends State<CreateCardScreen> {
       
       if (pickedFile == null) return;
       
-      final bytes = await pickedFile.readAsBytes();
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: pickedFile.path,
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+        compressQuality: 100,
+        maxWidth: 1000,
+        maxHeight: 1000,
+        cropStyle: CropStyle.circle,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Crop Image',
+            toolbarColor: AppColors.primary,
+            toolbarWidgetColor: Colors.white,
+            initAspectRatio: CropAspectRatioPreset.square,
+            lockAspectRatio: true,
+          ),
+          IOSUiSettings(
+            title: 'Crop Image',
+            aspectRatioLockEnabled: true,
+            resetAspectRatioEnabled: false,
+          ),
+        ],
+      );
+      
+      if (croppedFile == null) return;
+      
+      final bytes = await croppedFile.readAsBytes();
       final fileName = '${DateTime.now().millisecondsSinceEpoch}_${pickedFile.name}';
       
       final imageUrl = await _cardService.uploadImage(fileName, bytes);
       
       setState(() {
-        _profileImagePath = pickedFile.path;
+        _profileImagePath = croppedFile.path;
         _profileImageUrl = imageUrl;
       });
     } catch (e, stackTrace) {
