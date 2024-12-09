@@ -112,10 +112,39 @@ class CardService {
   }
 
   Future<void> deleteCard(String cardId) async {
-    await _supabase
-        .from('saved_cards')
-        .delete()
-        .match({'card_id': cardId, 'user_id': _supabase.auth.currentUser!.id});
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) {
+        throw AppError(
+          message: 'You must be signed in to delete cards',
+          type: ErrorType.authentication,
+        );
+      }
+
+      // First delete from saved_cards (references)
+      await _supabase
+          .from('saved_cards')
+          .delete()
+          .eq('card_id', cardId);
+
+      // Then delete analytics
+      await _supabase
+          .from('card_analytics')
+          .delete()
+          .eq('card_id', cardId);
+
+      // Finally delete the card itself
+      await _supabase
+          .from('digital_cards')
+          .delete()
+          .eq('id', cardId)
+          .eq('user_id', userId);  // Ensure user owns the card
+
+      debugPrint('Card and related data deleted successfully');
+    } catch (e) {
+      debugPrint('Error deleting card: $e');
+      rethrow;
+    }
   }
 
   Future<List<DigitalCard>> searchCards({
@@ -269,8 +298,8 @@ class CardService {
         'card_id': cardId,
         'user_id': userId,
         'saved_at': DateTime.now().toIso8601String(),
-        'notes': '',  // Optional
-        'tags': [],   // Optional
+        'notes': '',
+        'tags': [],
       });
 
       debugPrint('Card saved successfully: $cardId');
