@@ -67,6 +67,12 @@ class _CardViewerScreenState extends State<CardViewerScreen>
 
   Future<void> _recordView() async {
     try {
+      final currentUserId = _authService.currentUser?.id;
+      if (currentUserId == widget.card.userId) {
+        debugPrint('Skipping analytics for owner viewing their own card');
+        return;
+      }
+
       final permissionGranted = await PermissionsService().checkLocationPermission();
       if (!permissionGranted) {
         debugPrint('Location permission not granted');
