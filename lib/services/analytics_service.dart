@@ -286,15 +286,109 @@ class AnalyticsService {
   Future<List<Map<String, dynamic>>> getTimeSeriesAnalytics(String cardId) async {
     try {
       final response = await _supabase
-          .from('card_analytics_time_series')
-          .select()
+          .from('card_analytics')
+          .select('created_at, event_type')
           .eq('card_id', cardId)
-          .order('date');
-      
-      return List<Map<String, dynamic>>.from(response);
+          .order('created_at');
+
+      final data = List<Map<String, dynamic>>.from(response);
+      if (data.isEmpty) return [];
+
+      // Calculate date range
+      final firstDate = DateTime.parse(data.first['created_at']);
+      final lastDate = DateTime.parse(data.last['created_at']);
+      final diffInDays = lastDate.difference(firstDate).inDays;
+
+      // Determine interval based on date range
+      if (diffInDays == 0) {
+        // Single day - group by hours
+        return _groupByHours(data);
+      } else if (diffInDays <= 7) {
+        // Week or less - group by days
+        return _groupByDays(data);
+      } else if (diffInDays <= 30) {
+        // Month or less - group by weeks
+        return _groupByWeeks(data);
+      } else {
+        // More than a month - group by months
+        return _groupByMonths(data);
+      }
     } catch (e) {
       debugPrint('Error getting time series analytics: $e');
       return [];
     }
+  }
+
+  List<Map<String, dynamic>> _groupByHours(List<Map<String, dynamic>> data) {
+    final Map<String, int> hourlyData = {};
+    
+    for (var record in data) {
+      final date = DateTime.parse(record['created_at']);
+      final hour = DateTime(date.year, date.month, date.day, date.hour);
+      final key = hour.toIso8601String();
+      hourlyData[key] = (hourlyData[key] ?? 0) + 1;
+    }
+
+    return hourlyData.entries.map((e) => {
+      'date': e.key,
+      'count': e.value,
+    }).toList()..sort((a, b) => 
+      (a['date'] as String).compareTo(b['date'] as String)
+    );
+  }
+
+  List<Map<String, dynamic>> _groupByDays(List<Map<String, dynamic>> data) {
+    final Map<String, int> dailyData = {};
+    
+    for (var record in data) {
+      final date = DateTime.parse(record['created_at']);
+      final day = DateTime(date.year, date.month, date.day);
+      final key = day.toIso8601String();
+      dailyData[key] = (dailyData[key] ?? 0) + 1;
+    }
+
+    return dailyData.entries.map((e) => {
+      'date': e.key,
+      'count': e.value,
+    }).toList()..sort((a, b) => 
+      (a['date'] as String).compareTo(b['date'] as String)
+    );
+  }
+
+  List<Map<String, dynamic>> _groupByWeeks(List<Map<String, dynamic>> data) {
+    final Map<String, int> weeklyData = {};
+    
+    for (var record in data) {
+      final date = DateTime.parse(record['created_at']);
+      // Get start of week
+      final weekStart = date.subtract(Duration(days: date.weekday - 1));
+      final key = DateTime(weekStart.year, weekStart.month, weekStart.day).toIso8601String();
+      weeklyData[key] = (weeklyData[key] ?? 0) + 1;
+    }
+
+    return weeklyData.entries.map((e) => {
+      'date': e.key,
+      'count': e.value,
+    }).toList()..sort((a, b) => 
+      (a['date'] as String).compareTo(b['date'] as String)
+    );
+  }
+
+  List<Map<String, dynamic>> _groupByMonths(List<Map<String, dynamic>> data) {
+    final Map<String, int> monthlyData = {};
+    
+    for (var record in data) {
+      final date = DateTime.parse(record['created_at']);
+      final month = DateTime(date.year, date.month);
+      final key = month.toIso8601String();
+      monthlyData[key] = (monthlyData[key] ?? 0) + 1;
+    }
+
+    return monthlyData.entries.map((e) => {
+      'date': e.key,
+      'count': e.value,
+    }).toList()..sort((a, b) => 
+      (a['date'] as String).compareTo(b['date'] as String)
+    );
   }
 } 
