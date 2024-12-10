@@ -6,6 +6,10 @@ import 'terms_screen.dart';
 import 'privacy_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../home/home_screen.dart';
+import '../../services/permissions_service.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:app_settings/app_settings.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,6 +21,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
   final _authService = SupabaseService();
+  final _permissionsService = PermissionsService();
   bool _isLoading = false;
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
@@ -48,6 +53,7 @@ class _LoginScreenState extends State<LoginScreen>
     );
 
     _controller.forward();
+    _requestPermissions();
   }
 
   @override
@@ -73,6 +79,51 @@ class _LoginScreenState extends State<LoginScreen>
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _requestPermissions() async {
+    try {
+      // Check camera permission
+      final cameraStatus = await Permission.camera.status;
+      if (cameraStatus.isDenied) {
+        await Permission.camera.request();
+      }
+
+      // Check location permission
+      final locationStatus = await Geolocator.checkPermission();
+      if (locationStatus == LocationPermission.denied) {
+        await Geolocator.requestPermission();
+      }
+
+      // If either permission is permanently denied, show settings dialog
+      if (await Permission.camera.isPermanentlyDenied || 
+          locationStatus == LocationPermission.deniedForever) {
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Permissions Required'),
+              content: const Text(
+                'Camera and Location permissions are required for full app functionality. '
+                'Please enable them in settings.'
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => openAppSettings(),
+                  child: const Text('Open Settings'),
+                ),
+              ],
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error requesting permissions: $e');
     }
   }
 

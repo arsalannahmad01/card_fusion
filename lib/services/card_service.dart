@@ -121,28 +121,54 @@ class CardService {
         );
       }
 
-      // First delete from saved_cards (references)
+      // First verify the user owns the card
+      final card = await _supabase
+          .from('digital_cards')
+          .select()
+          .eq('id', cardId)
+          .eq('user_id', userId)
+          .single();
+
+      if (card == null) {
+        throw AppError(
+          message: 'Card not found or you do not have permission to delete it',
+          type: ErrorType.authentication,
+        );
+      }
+
+      // Delete in correct order due to foreign key constraints
+      debugPrint('Deleting card references...');
+
+      // 1. Delete saved_cards references
       await _supabase
           .from('saved_cards')
           .delete()
           .eq('card_id', cardId);
 
-      // Then delete analytics
+      // 2. Delete analytics
       await _supabase
           .from('card_analytics')
           .delete()
           .eq('card_id', cardId);
 
-      // Finally delete the card itself
+      // 3. Delete any images associated with the card
+      if (card['user_image_url'] != null) {
+        await deleteImage(card['user_image_url']);
+      }
+      if (card['logo_url'] != null) {
+        await deleteImage(card['logo_url']);
+      }
+
+      // 4. Finally delete the card itself
       await _supabase
           .from('digital_cards')
           .delete()
           .eq('id', cardId)
-          .eq('user_id', userId);  // Ensure user owns the card
+          .eq('user_id', userId);
 
-      debugPrint('Card and related data deleted successfully');
+      debugPrint('Card and all related data deleted successfully');
     } catch (e) {
-      debugPrint('Error deleting card: $e');
+      debugPrint('Error deleting card: $e\nStack trace: ${StackTrace.current}');
       rethrow;
     }
   }

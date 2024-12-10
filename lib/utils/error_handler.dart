@@ -13,7 +13,8 @@ enum ErrorType {
   template,
   scan,
   validation,
-  unknown
+  unknown,
+  authorization
 }
 
 class AppError {
@@ -173,6 +174,8 @@ class ErrorDisplay {
         return Icons.error_outline;
       case ErrorType.unknown:
         return Icons.error_outline;
+      case ErrorType.authorization:
+        return Icons.gpp_bad;
     }
   }
 
@@ -201,6 +204,8 @@ class ErrorDisplay {
       case ErrorType.validation:
         return Colors.orange;
       case ErrorType.unknown:
+        return Colors.red;
+      case ErrorType.authorization:
         return Colors.red;
     }
   }
