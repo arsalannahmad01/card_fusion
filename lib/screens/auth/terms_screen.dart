@@ -27,43 +27,111 @@ class TermsScreen extends StatelessWidget {
             const SizedBox(height: 24),
             _buildSection(
               title: '1. Acceptance of Terms',
-              content: 'By accessing and using Card Fusion, you accept and agree to be bound by the terms and provision of this agreement.',
+              content: 'By accessing and using Card Fusion, you accept and agree to be bound by these terms and conditions. If you disagree with any part of these terms, you may not access the service.',
             ),
             _buildSection(
-              title: '2. Description of Service',
-              content: 'Card Fusion provides a digital business card creation and management platform. Users can create, edit, share, and manage their digital business cards.',
+              title: '2. Service Description',
+              content: '''Card Fusion provides:
+• Digital business card creation and management
+• Card template customization
+• QR code generation and scanning
+• Contact management
+• Card sharing capabilities
+• Location-based features
+• Analytics and tracking''',
             ),
             _buildSection(
-              title: '3. User Registration',
-              content: 'You must register for an account using valid credentials and maintain the security of your account. You are responsible for all activities that occur under your account.',
+              title: '3. User Account',
+              content: '''3.1 Registration Requirements:
+• Valid email or Google account
+• Accurate personal information
+• Secure password maintenance
+• Age 13 or older
+
+3.2 Account Security:
+• Protect account credentials
+• Report unauthorized access
+• One account per user
+• Regular security updates''',
             ),
             _buildSection(
-              title: '4. User Content',
-              content: 'You retain all rights to any content you submit, post or display on Card Fusion. By submitting content, you grant Card Fusion a worldwide, non-exclusive license to use, copy, reproduce, process, adapt, modify, publish, transmit, display and distribute such content.',
+              title: '4. User Content and Data',
+              content: '''4.1 Business Cards:
+• Users retain ownership of card content
+• Grant us license to display and share
+• Must respect intellectual property rights
+• No inappropriate or illegal content
+
+4.2 Usage Rights:
+• Personal and business use only
+• No unauthorized commercial use
+• No data scraping or mining
+• No automated access''',
             ),
             _buildSection(
               title: '5. Acceptable Use',
-              content: 'You agree not to use Card Fusion for any unlawful purposes or to conduct any unlawful activity, including, but not limited to, fraud, embezzlement, money laundering or identity theft.',
+              content: '''Users agree not to:
+• Violate any laws or regulations
+• Infringe on others' rights
+• Share inappropriate content
+• Misuse QR code features
+• Abuse sharing functionality
+• Manipulate analytics data''',
             ),
             _buildSection(
-              title: '6. Service Modifications',
-              content: 'Card Fusion reserves the right to modify or discontinue, temporarily or permanently, the service with or without notice.',
+              title: '6. Service Limitations',
+              content: '''• Availability may vary by region
+• Features subject to device compatibility
+• Internet connection required
+• Storage limits may apply
+• QR code restrictions''',
             ),
             _buildSection(
               title: '7. Termination',
-              content: 'Card Fusion may terminate or suspend your account and bar access to the service immediately, without prior notice or liability, under our sole discretion, for any reason whatsoever.',
+              content: '''We may suspend or terminate accounts for:
+• Terms violation
+• Inappropriate content
+• Suspicious activity
+• Extended inactivity
+• Legal requirements''',
             ),
             _buildSection(
-              title: '8. Limitation of Liability',
-              content: 'In no event shall Card Fusion be liable for any indirect, incidental, special, consequential or punitive damages, or any loss of profits or revenues.',
+              title: '8. Intellectual Property',
+              content: '''8.1 App Content:
+• Templates are our property
+• Features and designs are protected
+• Brand assets are trademarked
+• User content remains user's property
+
+8.2 Restrictions:
+• No unauthorized copying
+• No reverse engineering
+• No white-labeling
+• No competitive use''',
             ),
             _buildSection(
-              title: '9. Changes to Terms',
-              content: 'We reserve the right to modify these terms at any time. We will notify users of any material changes by posting the new Terms of Service on this page.',
+              title: '9. Liability Limitations',
+              content: '''We are not liable for:
+• Data loss or corruption
+• Service interruptions
+• Third-party actions
+• User disputes
+• Device compatibility issues''',
             ),
             _buildSection(
-              title: '10. Contact Information',
-              content: 'For any questions about these Terms, please contact us at support@cardfusion.com',
+              title: '10. Changes to Service',
+              content: '''We reserve the right to:
+• Modify features
+• Update requirements
+• Change storage limits
+• Adjust sharing options
+• Modify templates''',
+            ),
+            _buildSection(
+              title: '11. Contact Information',
+              content: '''For service-related questions:
+Email: support@cardfusion.com
+Website: www.cardfusion.com''',
             ),
           ],
         ),

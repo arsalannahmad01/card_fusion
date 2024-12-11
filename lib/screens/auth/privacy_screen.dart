@@ -27,54 +27,103 @@ class PrivacyScreen extends StatelessWidget {
             const SizedBox(height: 24),
             _buildSection(
               title: '1. Information We Collect',
-              content: 'We collect information you provide directly to us, including name, email address, phone number, profile picture, and other business card information. We also collect usage data and analytics.',
+              content: '''1.1 Personal Information:
+• Name and contact details
+• Email address and phone number
+• Profile picture and business card information
+• Authentication credentials (including Google Sign-in data)
+• Location data (when permitted)
+• Device information and IP address
+
+1.2 Business Card Data:
+• Card designs and templates
+• Contact information shared via cards
+• QR code data and sharing history
+• Card analytics and usage statistics''',
             ),
             _buildSection(
               title: '2. How We Use Your Information',
               content: '''We use the information we collect to:
-• Provide and maintain our service
-• Notify you about changes to our service
-• Allow you to participate in interactive features
-• Provide customer support
-• Monitor the usage of our service
-• Detect, prevent and address technical issues''',
+• Create and manage your digital business cards
+• Enable card sharing and contact management
+• Process and store card templates
+• Provide location-based features
+• Analyze app usage and improve user experience
+• Send service-related notifications
+• Maintain account security
+• Generate usage analytics
+• Enable QR code functionality
+• Facilitate social sharing features''',
             ),
             _buildSection(
-              title: '3. Information Sharing',
-              content: 'We share your information with third parties only in ways described in this privacy policy. We do not sell your personal information.',
+              title: '3. Information Storage and Security',
+              content: '''• Data is stored securely on Supabase servers
+• We use encryption for data transmission
+• Local data is stored securely on your device
+• Backup data may be retained for system reliability
+• We implement industry-standard security measures''',
             ),
             _buildSection(
-              title: '4. Data Security',
-              content: 'We implement appropriate technical and organizational security measures to protect your data. However, no method of transmission over the Internet is 100% secure.',
+              title: '4. Information Sharing',
+              content: '''We share your information with:
+• Supabase (our database provider)
+• Google (for authentication)
+• Other users (when sharing business cards)
+• Service providers for app functionality
+• Legal authorities when required by law''',
             ),
             _buildSection(
-              title: '5. Third-Party Services',
-              content: 'Our service may contain links to third-party websites. We are not responsible for the privacy practices or content of these third-party sites.',
-            ),
-            _buildSection(
-              title: '6. Children\'s Privacy',
-              content: 'Our service does not address anyone under the age of 13. We do not knowingly collect personally identifiable information from children under 13.',
-            ),
-            _buildSection(
-              title: '7. Your Data Rights',
+              title: '5. Your Privacy Rights',
               content: '''You have the right to:
-• Access your personal data
-• Correct inaccurate data
-• Request deletion of your data
-• Object to data processing
-• Request data portability''',
+• Access and export your card data
+• Modify or correct your information
+• Delete your account and associated data
+• Control location data sharing
+• Opt-out of analytics collection
+• Manage sharing preferences''',
             ),
             _buildSection(
-              title: '8. Data Retention',
-              content: 'We retain your personal information only for as long as necessary to fulfill the purposes outlined in this privacy policy.',
+              title: '6. Data Collection Permissions',
+              content: '''We request permissions for:
+• Camera (QR code scanning)
+• Photo gallery (profile pictures)
+• Location services (optional features)
+• Storage (saving cards)
+• Internet access''',
             ),
             _buildSection(
-              title: '9. Changes to Privacy Policy',
-              content: 'We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page.',
+              title: '7. Children\'s Privacy',
+              content: '''• Service is not intended for users under 13
+• We do not knowingly collect data from children
+• Parents can request data deletion''',
             ),
             _buildSection(
-              title: '10. Contact Us',
-              content: 'If you have any questions about this Privacy Policy, please contact us at privacy@cardfusion.com',
+              title: '8. Third-Party Services',
+              content: '''• Google Sign-in integration
+• Image processing services
+• QR code generation
+• Share functionality
+• Location services''',
+            ),
+            _buildSection(
+              title: '9. Data Retention',
+              content: '''• Active account data is retained until deletion
+• Deleted accounts are removed within 30 days
+• Backup data may be retained for up to 30 days
+• Analytics data is anonymized after 90 days''',
+            ),
+            _buildSection(
+              title: '10. Changes to Privacy Policy',
+              content: '''We may update this policy periodically. Users will be notified of significant changes through:
+• In-app notifications
+• Email notifications
+• App updates''',
+            ),
+            _buildSection(
+              title: '11. Contact Information',
+              content: '''For privacy-related inquiries:
+Email: privacy@cardfusion.com
+Support: support@cardfusion.com''',
             ),
           ],
         ),
@@ -109,4 +158,4 @@ class PrivacyScreen extends StatelessWidget {
       ),
     );
   }
-} 
+}
